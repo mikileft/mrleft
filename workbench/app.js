@@ -1,4 +1,5 @@
 const STORAGE_KEY = "zxl-prd-workbench-v1";
+const AI_SETTINGS_KEY = "zxl-prd-ai-settings-v1";
 
 const steps = [
   {
@@ -101,6 +102,8 @@ const defaults = {
 };
 
 let state = loadState();
+let aiSettings = loadAiSettings();
+let aiTarget = { key: null, label: "当前阶段" };
 let saveTimer;
 let toastTimer;
 
@@ -120,6 +123,18 @@ const elements = {
   coachTip: document.querySelector("#coachTip"),
   previewDialog: document.querySelector("#previewDialog"),
   markdownPreview: document.querySelector("#markdownPreview"),
+  aiDialog: document.querySelector("#aiDialog"),
+  aiSettingsDialog: document.querySelector("#aiSettingsDialog"),
+  aiTargetLabel: document.querySelector("#aiTargetLabel"),
+  aiAction: document.querySelector("#aiAction"),
+  aiResult: document.querySelector("#aiResult"),
+  aiLoading: document.querySelector("#aiLoading"),
+  runAiButton: document.querySelector("#runAiButton"),
+  appendAiButton: document.querySelector("#appendAiButton"),
+  replaceAiButton: document.querySelector("#replaceAiButton"),
+  aiStatus: document.querySelector("#aiStatus"),
+  aiEndpoint: document.querySelector("#aiEndpoint"),
+  aiAccessToken: document.querySelector("#aiAccessToken"),
   toast: document.querySelector("#toast"),
 };
 
@@ -134,6 +149,18 @@ function loadState() {
     };
   } catch {
     return structuredClone(defaults);
+  }
+}
+
+function loadAiSettings() {
+  try {
+    return {
+      endpoint: "",
+      accessToken: "",
+      ...JSON.parse(localStorage.getItem(AI_SETTINGS_KEY)),
+    };
+  } catch {
+    return { endpoint: "", accessToken: "" };
   }
 }
 
@@ -152,15 +179,19 @@ function field(key, label, options = {}) {
     hint = "",
     required = false,
     span = false,
+    ai = type === "textarea",
   } = options;
   const labelMarkup = `${label}${required ? ' <span class="required">*</span>' : ""}`;
   const control =
     type === "textarea"
-      ? `<textarea data-key="${key}" placeholder="${escapeHtml(placeholder)}">${escapeHtml(state[key])}</textarea>`
-      : `<input data-key="${key}" type="${type}" value="${escapeHtml(state[key])}" placeholder="${escapeHtml(placeholder)}" />`;
+      ? `<textarea id="${key}" data-key="${key}" placeholder="${escapeHtml(placeholder)}">${escapeHtml(state[key])}</textarea>`
+      : `<input id="${key}" data-key="${key}" type="${type}" value="${escapeHtml(state[key])}" placeholder="${escapeHtml(placeholder)}" />`;
   return `
     <div class="field ${span ? "field-span" : ""}">
-      <label for="${key}"><span>${labelMarkup}</span>${required ? "<small>必填</small>" : ""}</label>
+      <div class="field-header">
+        <label for="${key}"><span>${labelMarkup}</span>${required ? "<small>必填</small>" : ""}</label>
+        ${ai ? `<button class="ai-field-button" data-ai-key="${key}" data-ai-label="${escapeHtml(label)}" type="button">✦ AI 共创</button>` : ""}
+      </div>
       ${control}
       ${hint ? `<p class="field-hint">${hint}</p>` : ""}
     </div>
@@ -407,6 +438,15 @@ function bindStepEvents() {
     button.addEventListener("click", () => {
       if (button.dataset.action === "preview") openPreview();
       if (button.dataset.action === "export") exportMarkdown();
+    });
+  });
+
+  elements.stepContent.querySelectorAll("[data-ai-key]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openAiAssistant({
+        key: button.dataset.aiKey,
+        label: button.dataset.aiLabel,
+      });
     });
   });
 }
@@ -743,6 +783,112 @@ function showToast(message) {
   toastTimer = setTimeout(() => elements.toast.classList.remove("visible"), 2200);
 }
 
+function updateAiStatus() {
+  const configured = Boolean(aiSettings.endpoint && aiSettings.accessToken);
+  elements.aiStatus.textContent = configured ? "已配置" : "未配置";
+  elements.aiStatus.classList.toggle("connected", configured);
+}
+
+function openAiAssistant(target = { key: null, label: "当前阶段" }) {
+  if (!aiSettings.endpoint || !aiSettings.accessToken) {
+    openAiSettings();
+    showToast("请先配置 AI 安全网关");
+    return;
+  }
+  aiTarget = target;
+  elements.aiTargetLabel.textContent = target.label;
+  elements.aiResult.value = "";
+  elements.appendAiButton.disabled = true;
+  elements.replaceAiButton.disabled = true;
+  elements.aiDialog.showModal();
+}
+
+function openAiSettings() {
+  elements.aiEndpoint.value = aiSettings.endpoint;
+  elements.aiAccessToken.value = aiSettings.accessToken;
+  elements.aiSettingsDialog.showModal();
+}
+
+function buildAiContext() {
+  const context = {
+    mode: state.mode,
+    phase: steps[state.currentStep].short,
+    productName: state.productName,
+    problem: state.problem,
+    audience: state.audience,
+    targetUsers: state.targetUsers,
+    currentWorkaround: state.currentWorkaround,
+    desiredOutcome: state.desiredOutcome,
+    constraints: state.constraints,
+    whyNow: state.whyNow,
+    decisionNeeded: state.decisionNeeded,
+    goals: state.goals,
+    nonGoals: state.nonGoals,
+    inScope: state.inScope,
+    outOfScope: state.outOfScope,
+    evidence: state.evidence,
+    requirements: state.requirements,
+    metrics: state.metrics,
+    risks: state.risks,
+  };
+  return JSON.stringify(context).slice(0, 24000);
+}
+
+async function runAiAssistant() {
+  const originalText = aiTarget.key ? state[aiTarget.key] || "" : "";
+  elements.runAiButton.disabled = true;
+  elements.aiLoading.hidden = false;
+  elements.aiResult.value = "";
+  elements.appendAiButton.disabled = true;
+  elements.replaceAiButton.disabled = true;
+
+  try {
+    const response = await fetch(aiSettings.endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${aiSettings.accessToken}`,
+      },
+      body: JSON.stringify({
+        action: elements.aiAction.value,
+        target: {
+          key: aiTarget.key,
+          label: aiTarget.label,
+          value: originalText,
+        },
+        context: buildAiContext(),
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error || `AI 请求失败（${response.status}）`);
+    }
+    if (!payload.content) throw new Error("AI 没有返回可用内容");
+    elements.aiResult.value = payload.content;
+    const canApply = Boolean(aiTarget.key);
+    elements.appendAiButton.disabled = !canApply;
+    elements.replaceAiButton.disabled = !canApply;
+  } catch (error) {
+    elements.aiResult.value = `无法完成 AI 分析：${error.message}`;
+  } finally {
+    elements.runAiButton.disabled = false;
+    elements.aiLoading.hidden = true;
+  }
+}
+
+function applyAiResult(mode) {
+  if (!aiTarget.key || !elements.aiResult.value) return;
+  const suggestion = elements.aiResult.value.trim();
+  state[aiTarget.key] =
+    mode === "append" && hasText(state[aiTarget.key])
+      ? `${state[aiTarget.key].trim()}\n${suggestion}`
+      : suggestion;
+  saveState();
+  elements.aiDialog.close();
+  renderStep();
+  showToast(mode === "append" ? "AI 建议已追加" : "字段内容已替换");
+}
+
 function goToStep(index) {
   state.currentStep = Math.max(0, Math.min(steps.length - 1, index));
   saveState();
@@ -771,10 +917,44 @@ elements.mode.addEventListener("change", () => {
 document.querySelector("#previewButton").addEventListener("click", openPreview);
 document.querySelector("#exportButton").addEventListener("click", exportMarkdown);
 document
+  .querySelector("#aiAssistantButton")
+  .addEventListener("click", () => openAiAssistant());
+document
+  .querySelector("#aiQuickStartButton")
+  .addEventListener("click", () => openAiAssistant());
+document.querySelector("#aiSettingsButton").addEventListener("click", openAiSettings);
+document
   .querySelector("#closePreviewButton")
   .addEventListener("click", () => elements.previewDialog.close());
 elements.previewDialog.addEventListener("click", (event) => {
   if (event.target === elements.previewDialog) elements.previewDialog.close();
+});
+
+document
+  .querySelector("#closeAiButton")
+  .addEventListener("click", () => elements.aiDialog.close());
+document
+  .querySelector("#closeAiSettingsButton")
+  .addEventListener("click", () => elements.aiSettingsDialog.close());
+elements.aiDialog.addEventListener("click", (event) => {
+  if (event.target === elements.aiDialog) elements.aiDialog.close();
+});
+elements.aiSettingsDialog.addEventListener("click", (event) => {
+  if (event.target === elements.aiSettingsDialog) elements.aiSettingsDialog.close();
+});
+elements.runAiButton.addEventListener("click", runAiAssistant);
+elements.appendAiButton.addEventListener("click", () => applyAiResult("append"));
+elements.replaceAiButton.addEventListener("click", () => applyAiResult("replace"));
+document.querySelector("#aiSettingsForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  aiSettings = {
+    endpoint: elements.aiEndpoint.value.trim(),
+    accessToken: elements.aiAccessToken.value.trim(),
+  };
+  localStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(aiSettings));
+  updateAiStatus();
+  elements.aiSettingsDialog.close();
+  showToast("AI 服务配置已保存");
 });
 
 document.querySelector("#resetButton").addEventListener("click", () => {
@@ -798,4 +978,5 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+updateAiStatus();
 renderStep();

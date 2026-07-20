@@ -48,6 +48,12 @@ judgment-based review, the deterministic validator, or independent reader
 testing. Treat exported content as user input: preserve its evidence labels,
 surface unresolved `TBD` items, and continue the selected co-authoring mode.
 
+When the optional AI gateway is configured, the workbench can ask questions,
+draft from existing context, rewrite a selected field, and review gaps. AI
+suggestions are candidates, not facts or decisions. Require explicit user
+acceptance before inserting them, retain `Assumption` and `TBD` labels, and
+never infer approval from the user accepting improved wording.
+
 ## Phase 1: Establish the document contract
 
 Before drafting, determine:

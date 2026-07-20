@@ -50,6 +50,9 @@
             <h1 id="stepTitle">先对齐问题，再讨论方案</h1>
           </div>
           <div class="topbar-actions">
+            <button class="button button-ai" id="aiAssistantButton" type="button">
+              ✦ AI 助手
+            </button>
             <button class="button button-ghost" id="previewButton" type="button">
               预览文档
             </button>
@@ -88,6 +91,22 @@
                 <p id="coachTip">
                   先描述目标用户正在经历的问题，不要急于写功能清单。
                 </p>
+              </div>
+            </section>
+
+            <section class="ai-card">
+              <div class="card-heading">
+                <span>AI 共创</span>
+                <span class="ai-status" id="aiStatus">未配置</span>
+              </div>
+              <p>结合当前 PRD 上下文追问、补全和评审，不会自动覆盖你的内容。</p>
+              <div class="ai-card-actions">
+                <button class="button button-ai button-wide" id="aiQuickStartButton" type="button">
+                  ✦ 分析当前阶段
+                </button>
+                <button class="button button-ghost button-wide" id="aiSettingsButton" type="button">
+                  配置 AI
+                </button>
               </div>
             </section>
 
@@ -132,6 +151,78 @@
         <button class="icon-button" id="closePreviewButton" aria-label="关闭预览">×</button>
       </div>
       <pre id="markdownPreview"></pre>
+    </dialog>
+
+    <dialog id="aiDialog" class="ai-dialog">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">ZXL PRD · AI COPILOT</p>
+          <h2>AI 共创助手</h2>
+        </div>
+        <button class="icon-button" id="closeAiButton" aria-label="关闭 AI 助手">×</button>
+      </div>
+      <div class="ai-dialog-body">
+        <div class="ai-target">
+          <span>当前目标</span>
+          <strong id="aiTargetLabel">当前阶段</strong>
+        </div>
+        <div class="field">
+          <label for="aiAction"><span>希望 AI 做什么？</span></label>
+          <select id="aiAction">
+            <option value="questions">发现缺口并提出追问</option>
+            <option value="draft">基于现有事实生成草案</option>
+            <option value="rewrite">优化表达与可测试性</option>
+            <option value="review">检查矛盾、假设与风险</option>
+          </select>
+        </div>
+        <div class="ai-privacy-note">
+          发送内容包括当前字段及相关 PRD 上下文。请勿提交密钥、个人敏感信息或未授权数据。
+        </div>
+        <button class="button button-ai button-wide" id="runAiButton" type="button">
+          ✦ 开始分析
+        </button>
+        <div class="ai-loading" id="aiLoading" hidden>
+          <span></span><span></span><span></span> AI 正在分析…
+        </div>
+        <div class="field ai-result-field">
+          <label for="aiResult"><span>AI 建议</span><small>请核验事实后再采纳</small></label>
+          <textarea id="aiResult" placeholder="AI 建议将显示在这里" readonly></textarea>
+        </div>
+        <div class="ai-result-actions">
+          <button class="button button-ghost" id="appendAiButton" type="button" disabled>
+            追加到字段
+          </button>
+          <button class="button button-primary" id="replaceAiButton" type="button" disabled>
+            替换字段内容
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="aiSettingsDialog" class="settings-dialog">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">SECURE AI GATEWAY</p>
+          <h2>配置 AI 服务</h2>
+        </div>
+        <button class="icon-button" id="closeAiSettingsButton" aria-label="关闭配置">×</button>
+      </div>
+      <form id="aiSettingsForm" class="settings-form">
+        <div class="field">
+          <label for="aiEndpoint"><span>Worker API 地址</span><small>必填</small></label>
+          <input id="aiEndpoint" type="url" placeholder="https://your-worker.workers.dev/api/assist" required />
+          <p class="field-hint">填写部署后的 Cloudflare Worker 地址，不要填写模型厂商的 API 地址。</p>
+        </div>
+        <div class="field">
+          <label for="aiAccessToken"><span>工作台访问令牌</span><small>必填</small></label>
+          <input id="aiAccessToken" type="password" autocomplete="off" required />
+          <p class="field-hint">该令牌仅保存在当前浏览器，用于阻止他人消耗你的 AI 额度。</p>
+        </div>
+        <div class="settings-warning">
+          模型 API Key 必须配置为 Worker Secret，绝不能粘贴到这里或提交到 GitHub。
+        </div>
+        <button class="button button-primary button-wide" type="submit">保存配置</button>
+      </form>
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>

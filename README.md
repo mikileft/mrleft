@@ -39,6 +39,23 @@ evidence labeling, requirement and metric editing, readiness tracking, local
 autosave, structural checks, live Markdown preview, and Markdown export. Drafts
 remain in the browser's local storage; no content is sent to a server.
 
+### AI co-authoring
+
+Long-form fields include an **AI 共创** action with four tasks:
+
+- identify consequential gaps and ask focused questions;
+- draft content from existing facts while preserving assumptions and `TBD`s;
+- improve clarity, measurability, and testability;
+- review contradictions, unsupported claims, scope gaps, and risks.
+
+AI output never overwrites a field automatically. The user must explicitly
+append or replace content after reviewing the suggestion.
+
+The public workbench does not contain a model API key. Deploy the secure,
+OpenAI-compatible Cloudflare gateway in [`worker/`](worker/README.md), then use
+**配置 AI** in the workbench to save its `/api/assist` endpoint and a separate
+workbench access token in the current browser.
+
 ## Use as a project skill
 
 The repository includes the skill at:

@@ -1,0 +1,9 @@
+name = "zxl-prd-ai-mikileft"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://mikileft.github.io"
+AI_BASE_URL = "https://api.openai.com/v1"
+AI_MODEL = "gpt-4.1-mini"
