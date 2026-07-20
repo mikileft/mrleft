@@ -14,6 +14,17 @@ It supports:
 
 ## Visual workbench
 
+Once GitHub Pages is enabled for this repository, the continuously deployed
+workbench is available at:
+
+```text
+https://mikileft.github.io/mrleft/workbench/
+```
+
+Changes to `workbench/` on the configured branches are published by
+`.github/workflows/deploy-workbench.yml`. The workflow can also be run manually
+from the repository's **Actions** tab.
+
 Open `workbench/index.html` directly in a browser, or serve the repository
 locally:
 
