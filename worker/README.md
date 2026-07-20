@@ -33,6 +33,21 @@ browser.
 
 ## Deploy
 
+### GitHub Actions
+
+The repository workflow `.github/workflows/deploy-ai-worker.yml` deploys the
+Worker whenever `worker/` changes. Configure these repository Actions secrets:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `AI_API_KEY`
+- `WORKBENCH_ACCESS_TOKEN`
+
+The last two values are uploaded to Cloudflare as encrypted Worker secrets and
+are not written to `wrangler.toml`.
+
+### Local deployment
+
 ```bash
 npx wrangler@latest deploy
 ```

@@ -1,0 +1,40 @@
+name: Deploy AI Worker
+
+on:
+  push:
+    branches:
+      - master
+      - cursor/install-prd-skills-ac31
+      - cursor/visual-prd-workbench-5b22
+    paths:
+      - "worker/**"
+      - ".github/workflows/deploy-ai-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-worker-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Deploy secure AI gateway
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: deploy
+          secrets: |
+            AI_API_KEY
+            WORKBENCH_ACCESS_TOKEN
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          WORKBENCH_ACCESS_TOKEN: ${{ secrets.WORKBENCH_ACCESS_TOKEN }}
