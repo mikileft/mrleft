@@ -4,6 +4,12 @@ This Cloudflare Worker keeps the model API key out of the public GitHub Pages
 application. It accepts requests only from configured origins and requires a
 separate workbench access token.
 
+Production endpoint:
+
+```text
+https://zxl-prd-ai-mikileft.xiaolong-zuox.workers.dev/api/assist
+```
+
 ## Prerequisites
 
 - A Cloudflare account
