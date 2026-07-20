@@ -86,15 +86,15 @@ State what this initiative intentionally will not solve.
 
 ### In scope
 
-- 
+- [Add item]
 
 ### Out of scope
 
-- 
+- [Add item]
 
 ### Deferred
 
-- 
+- [Add item]
 
 ### Future-state user flow
 
