@@ -1,5 +1,5 @@
 ---
-name: high-quality-prd
+name: zxl-prd
 description: Create, refine, or review decision-ready Product Requirements Documents through structured discovery, measurable requirements, iterative co-authoring, deterministic quality checks, and independent reader testing. Use when the user asks to 写PRD, 创建产品需求文档, 梳理产品需求, define product requirements, plan a feature, turn an idea into a specification, or review an existing PRD.
 ---
 
@@ -128,7 +128,7 @@ When AI is part of the product, also define:
 Run the deterministic validator when a Markdown PRD file exists:
 
 ```bash
-python3 .cursor/skills/high-quality-prd/scripts/validate_prd.py path/to/prd.md
+python3 .cursor/skills/zxl-prd/scripts/validate_prd.py path/to/prd.md
 ```
 
 Then apply the judgment-based review in [references/quality-checklist.md](references/quality-checklist.md). The script finds structural signals; it does not prove that the product reasoning is correct.
