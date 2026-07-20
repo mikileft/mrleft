@@ -5,11 +5,28 @@
 It supports:
 
 - full collaborative authoring, fast drafting, and review modes;
+- a guided visual workbench for structuring and exporting PRD inputs;
 - evidence, assumption, decision, and `TBD` tracking;
 - measurable functional and non-functional requirements;
 - product metrics with baselines, targets, guardrails, and owners;
 - AI-specific evaluation, safety, privacy, latency, and cost requirements;
 - deterministic validation and independent reader testing.
+
+## Visual workbench
+
+Open `workbench/index.html` directly in a browser, or serve the repository
+locally:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then visit `http://localhost:8000/workbench/`.
+
+The workbench turns the ZXL PRD phases into a seven-step interface. It supports
+evidence labeling, requirement and metric editing, readiness tracking, local
+autosave, structural checks, live Markdown preview, and Markdown export. Drafts
+remain in the browser's local storage; no content is sent to a server.
 
 ## Use as a project skill
 
