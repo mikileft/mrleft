@@ -1,0 +1,18 @@
+{
+  "name": "zxl-prd",
+  "displayName": "ZXL PRD",
+  "description": "Create, refine, and review decision-ready product requirements documents with structured discovery, measurable requirements, validation, and independent reader testing.",
+  "version": "1.0.0",
+  "author": {
+    "name": "mikileft"
+  },
+  "repository": "https://github.com/mikileft/mrleft",
+  "keywords": [
+    "prd",
+    "product-management",
+    "requirements",
+    "product-specification",
+    "planning"
+  ],
+  "skills": ".cursor/skills/zxl-prd"
+}
