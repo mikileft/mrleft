@@ -43,6 +43,10 @@ remain in the browser's local storage; no content is sent to a server.
 
 Every PRD belongs to a task. The task center supports:
 
+- a mandatory entry gate: select a historical task or create a new one before
+  entering the PRD editor;
+- contextual next actions for historical tasks: continue editing, inspect
+  versions, or archive;
 - creating, switching, progressing, completing, and archiving tasks;
 - task-scoped cloud autosave with a local browser cache;
 - migrating an existing pre-task local draft;

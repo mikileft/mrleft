@@ -60,6 +60,12 @@ metrics, or decisions across tasks. Draft autosaves are mutable working state;
 named versions are immutable checkpoints. Restoring a version must create a new
 checkpoint so later history remains traceable.
 
+The workbench entry flow is task-first. Before showing the PRD editor, require
+the user to select a historical task or create a new task. For a historical
+task, expose the next action only after selection: continue editing, inspect
+versions, or archive. For a new task, choose the co-authoring mode before
+entering Phase 1.
+
 ## Phase 1: Establish the document contract
 
 Before drafting, determine:

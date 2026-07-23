@@ -116,6 +116,7 @@ let aiSettings = loadAiSettings();
 let aiTarget = { key: null, label: "当前阶段" };
 let tasks = [];
 let activeTask = null;
+let selectedEntryTaskId = null;
 let saveTimer;
 let remoteSaveTimer;
 let toastTimer;
@@ -157,6 +158,10 @@ const elements = {
   legacyDraftBanner: document.querySelector("#legacyDraftBanner"),
   newTaskTitle: document.querySelector("#newTaskTitle"),
   newTaskOwner: document.querySelector("#newTaskOwner"),
+  newTaskMode: document.querySelector("#newTaskMode"),
+  taskNextActions: document.querySelector("#taskNextActions"),
+  selectedTaskTitle: document.querySelector("#selectedTaskTitle"),
+  selectedTaskMeta: document.querySelector("#selectedTaskMeta"),
   historyDialog: document.querySelector("#historyDialog"),
   revisionList: document.querySelector("#revisionList"),
   revisionNote: document.querySelector("#revisionNote"),
@@ -953,17 +958,20 @@ function renderTaskList() {
   elements.taskCount.textContent = `${tasks.length} 个`;
   elements.legacyDraftBanner.hidden = Boolean(activeTask) || !hasLegacyDraft();
   if (!tasks.length) {
+    selectedEntryTaskId = null;
+    elements.taskNextActions.hidden = true;
     elements.taskList.innerHTML =
       '<div class="task-list-empty">还没有任务。创建第一个任务后，所有 PRD 内容和版本都将归属该任务。</div>';
     return;
   }
+  const lastTaskId = localStorage.getItem(ACTIVE_TASK_KEY);
   elements.taskList.innerHTML = tasks
     .map(
       (task) => `
-        <article class="task-item ${task.id === activeTask?.id ? "active" : ""}">
+        <article class="task-item ${task.id === activeTask?.id ? "active" : ""} ${task.id === selectedEntryTaskId ? "selected" : ""}">
           <div class="task-item-copy">
             <strong>${escapeHtml(task.title)}</strong>
-            <small>v${task.current_revision || 1} · 更新于 ${formatDate(task.updated_at)}</small>
+            <small>${task.id === lastTaskId ? "上次任务 · " : ""}v${task.current_revision || 1} · 更新于 ${formatDate(task.updated_at)}</small>
           </div>
           <select class="task-status-select" data-task-status="${task.id}" aria-label="任务状态">
             ${Object.entries(taskStatuses)
@@ -975,15 +983,15 @@ function renderTaskList() {
               .join("")}
           </select>
           <div class="task-item-actions">
-            <button class="button button-ghost" data-open-task="${task.id}" type="button">
-              ${task.id === activeTask?.id ? "当前" : "打开"}
+            <button class="button ${task.id === selectedEntryTaskId ? "button-primary" : "button-ghost"}" data-select-task="${task.id}" type="button">
+              ${task.id === selectedEntryTaskId ? "已选择" : "选择"}
             </button>
-            <button class="button button-ghost button-danger" data-archive-task="${task.id}" type="button">归档</button>
           </div>
         </article>
       `,
     )
     .join("");
+  updateSelectedTaskActions();
 }
 
 async function openTaskCenter() {
@@ -992,7 +1000,9 @@ async function openTaskCenter() {
     showToast("请先配置工作台服务");
     return;
   }
-  elements.taskDialog.showModal();
+  selectedEntryTaskId = activeTask?.id || null;
+  updateTaskGate();
+  if (!elements.taskDialog.open) elements.taskDialog.showModal();
   try {
     await loadTasks();
   } catch (error) {
@@ -1000,10 +1010,35 @@ async function openTaskCenter() {
   }
 }
 
-async function createTask(title, owner, prd = null) {
+function updateTaskGate() {
+  const gateRequired = !activeTask;
+  elements.taskDialog.classList.toggle("task-gate", gateRequired);
+  document.querySelector("#closeTaskButton").hidden = gateRequired;
+  document.querySelector("#taskDialogTitle").textContent = gateRequired
+    ? "先选择任务，再开始 PRD"
+    : "切换或创建任务";
+  updateSelectedTaskActions();
+}
+
+function selectTaskForActions(taskId) {
+  selectedEntryTaskId = taskId;
+  renderTaskList();
+}
+
+function updateSelectedTaskActions() {
+  const task = tasks.find((item) => item.id === selectedEntryTaskId);
+  elements.taskNextActions.hidden = !task;
+  if (!task) return;
+  elements.selectedTaskTitle.textContent = task.title;
+  elements.selectedTaskMeta.textContent =
+    `${taskStatuses[task.status] || task.status} · 版本 ${task.current_revision || 1} · 更新于 ${formatDate(task.updated_at)}`;
+}
+
+async function createTask(title, owner, prd = null, mode = "full") {
   const taskPrd = normalizePrd(prd || {});
   if (!hasText(taskPrd.productName)) taskPrd.productName = title;
   if (!hasText(taskPrd.owner)) taskPrd.owner = owner;
+  taskPrd.mode = mode;
   const payload = await apiRequest("/api/tasks", {
     method: "POST",
     body: JSON.stringify({
@@ -1049,6 +1084,7 @@ async function updateTaskStatus(taskId, status) {
     activeTask.updated_at = payload.task.updated_at;
     updateTaskUi();
   }
+  updateSelectedTaskActions();
   showToast(`任务状态已更新为${taskStatuses[status]}`);
 }
 
@@ -1059,6 +1095,7 @@ async function archiveTask(taskId) {
   }
   await apiRequest(`/api/tasks/${taskId}`, { method: "DELETE" });
   tasks = tasks.filter((item) => item.id !== taskId);
+  if (selectedEntryTaskId === taskId) selectedEntryTaskId = null;
   if (activeTask?.id === taskId) {
     activeTask = null;
     state = structuredClone(defaults);
@@ -1066,6 +1103,7 @@ async function archiveTask(taskId) {
     renderStep();
   }
   renderTaskList();
+  updateTaskGate();
   showToast("任务已归档");
 }
 
@@ -1074,10 +1112,12 @@ async function bootstrapTasks() {
   if (!aiSettings.endpoint || !aiSettings.accessToken) return;
   try {
     await loadTasks();
-    const activeTaskId = localStorage.getItem(ACTIVE_TASK_KEY);
-    const candidate = tasks.find((item) => item.id === activeTaskId) || tasks[0];
-    if (candidate) await activateTask(candidate.id);
-    else await openTaskCenter();
+    activeTask = null;
+    selectedEntryTaskId = null;
+    updateTaskUi();
+    updateTaskGate();
+    renderTaskList();
+    if (!elements.taskDialog.open) elements.taskDialog.showModal();
   } catch (error) {
     console.error("Task bootstrap failed", error);
     showToast(`任务服务未就绪：${error.message}`);
@@ -1352,12 +1392,19 @@ elements.aiSettingsDialog.addEventListener("click", (event) => {
 });
 document
   .querySelector("#closeTaskButton")
-  .addEventListener("click", () => elements.taskDialog.close());
+  .addEventListener("click", () => {
+    if (activeTask) elements.taskDialog.close();
+  });
 document
   .querySelector("#closeHistoryButton")
   .addEventListener("click", () => elements.historyDialog.close());
 elements.taskDialog.addEventListener("click", (event) => {
-  if (event.target === elements.taskDialog) elements.taskDialog.close();
+  if (event.target === elements.taskDialog && activeTask) {
+    elements.taskDialog.close();
+  }
+});
+elements.taskDialog.addEventListener("cancel", (event) => {
+  if (!activeTask) event.preventDefault();
 });
 elements.historyDialog.addEventListener("click", (event) => {
   if (event.target === elements.historyDialog) elements.historyDialog.close();
@@ -1384,6 +1431,8 @@ document.querySelector("#newTaskForm").addEventListener("submit", async (event) 
     await createTask(
       elements.newTaskTitle.value.trim(),
       elements.newTaskOwner.value.trim(),
+      null,
+      elements.newTaskMode.value,
     );
     elements.newTaskTitle.value = "";
     elements.newTaskOwner.value = "";
@@ -1397,7 +1446,7 @@ document.querySelector("#migrateDraftButton").addEventListener("click", async ()
   try {
     const legacyState = structuredClone(state);
     const title = state.productName || "迁移的 PRD 草稿";
-    await createTask(title, state.owner || "", legacyState);
+    await createTask(title, state.owner || "", legacyState, legacyState.mode);
     localStorage.removeItem(STORAGE_KEY);
     elements.taskDialog.close();
     showToast("旧版草稿已迁移为任务");
@@ -1416,17 +1465,8 @@ document.querySelector("#refreshTasksButton").addEventListener("click", async ()
 });
 
 elements.taskList.addEventListener("click", async (event) => {
-  const openButton = event.target.closest("[data-open-task]");
-  const archiveButton = event.target.closest("[data-archive-task]");
-  try {
-    if (openButton) {
-      await activateTask(openButton.dataset.openTask);
-      elements.taskDialog.close();
-    }
-    if (archiveButton) await archiveTask(archiveButton.dataset.archiveTask);
-  } catch (error) {
-    showToast(`任务操作失败：${error.message}`);
-  }
+  const selectButton = event.target.closest("[data-select-task]");
+  if (selectButton) selectTaskForActions(selectButton.dataset.selectTask);
 });
 
 elements.taskList.addEventListener("change", async (event) => {
@@ -1439,6 +1479,38 @@ elements.taskList.addEventListener("change", async (event) => {
     await loadTasks();
   }
 });
+
+document.querySelector("#continueTaskButton").addEventListener("click", async () => {
+  if (!selectedEntryTaskId) return;
+  try {
+    await activateTask(selectedEntryTaskId);
+    elements.taskDialog.close();
+  } catch (error) {
+    showToast(`打开任务失败：${error.message}`);
+  }
+});
+
+document.querySelector("#viewTaskHistoryButton").addEventListener("click", async () => {
+  if (!selectedEntryTaskId) return;
+  try {
+    await activateTask(selectedEntryTaskId);
+    elements.taskDialog.close();
+    await openHistory();
+  } catch (error) {
+    showToast(`读取历史失败：${error.message}`);
+  }
+});
+
+document
+  .querySelector("#archiveSelectedTaskButton")
+  .addEventListener("click", async () => {
+    if (!selectedEntryTaskId) return;
+    try {
+      await archiveTask(selectedEntryTaskId);
+    } catch (error) {
+      showToast(`归档失败：${error.message}`);
+    }
+  });
 
 document.querySelector("#saveRevisionForm").addEventListener("submit", async (event) => {
   event.preventDefault();

@@ -172,22 +172,45 @@
       <div class="dialog-header">
         <div>
           <p class="eyebrow">TASK WORKSPACE</p>
-          <h2>任务中心</h2>
+          <h2 id="taskDialogTitle">先选择任务，再开始 PRD</h2>
         </div>
         <button class="icon-button" id="closeTaskButton" aria-label="关闭任务中心">×</button>
       </div>
       <div class="task-dialog-body">
-        <form id="newTaskForm" class="new-task-form">
-          <div class="field">
-            <label for="newTaskTitle"><span>新任务名称</span><small>必填</small></label>
-            <input id="newTaskTitle" maxlength="160" placeholder="例如：优化新用户激活流程" required />
+        <p class="task-gate-copy">
+          选择历史任务继续推进，或创建一个新任务。后续需求、AI 建议和版本记录都会归属所选任务。
+        </p>
+        <section class="task-entry-section">
+          <div class="task-list-header">
+            <div>
+              <strong>历史任务</strong>
+              <span id="taskCount">0 个</span>
+            </div>
+            <button class="button button-ghost" id="refreshTasksButton" type="button">刷新</button>
           </div>
-          <div class="field">
-            <label for="newTaskOwner"><span>负责人</span></label>
-            <input id="newTaskOwner" maxlength="120" placeholder="姓名或角色" />
+          <div id="taskList" class="task-list"></div>
+          <div id="taskNextActions" class="task-next-actions" hidden>
+            <div>
+              <span>已选择历史任务</span>
+              <strong id="selectedTaskTitle">—</strong>
+              <small id="selectedTaskMeta">—</small>
+            </div>
+            <div class="task-next-buttons">
+              <button class="button button-primary" id="continueTaskButton" type="button">
+                继续编辑
+              </button>
+              <button class="button button-ghost" id="viewTaskHistoryButton" type="button">
+                查看版本
+              </button>
+              <button class="button button-ghost button-danger" id="archiveSelectedTaskButton" type="button">
+                归档
+              </button>
+            </div>
           </div>
-          <button class="button button-primary" type="submit">＋ 创建任务</button>
-        </form>
+        </section>
+
+        <div class="task-entry-divider"><span>或创建新任务</span></div>
+
         <div id="legacyDraftBanner" class="migration-banner" hidden>
           <div>
             <strong>发现本地历史草稿</strong>
@@ -197,14 +220,25 @@
             迁移草稿
           </button>
         </div>
-        <div class="task-list-header">
-          <div>
-            <strong>全部任务</strong>
-            <span id="taskCount">0 个</span>
+        <form id="newTaskForm" class="new-task-form">
+          <div class="field">
+            <label for="newTaskTitle"><span>新任务名称</span><small>必填</small></label>
+            <input id="newTaskTitle" maxlength="160" placeholder="例如：优化新用户激活流程" required />
           </div>
-          <button class="button button-ghost" id="refreshTasksButton" type="button">刷新</button>
-        </div>
-        <div id="taskList" class="task-list"></div>
+          <div class="field">
+            <label for="newTaskOwner"><span>负责人</span></label>
+            <input id="newTaskOwner" maxlength="120" placeholder="姓名或角色" />
+          </div>
+          <div class="field">
+            <label for="newTaskMode"><span>共创模式</span></label>
+            <select id="newTaskMode">
+              <option value="full">完整共创</option>
+              <option value="fast">快速草案</option>
+              <option value="review">评审模式</option>
+            </select>
+          </div>
+          <button class="button button-primary" type="submit">创建并进入 →</button>
+        </form>
       </div>
     </dialog>
 
