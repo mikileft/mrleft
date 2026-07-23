@@ -1027,19 +1027,19 @@ kbd {
   box-shadow: 0 1px 0 #c8cec9;
 }
 
-.step-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 8;
+.journey-controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: auto;
-  padding: 18px 38px;
+  margin-top: 9px;
+  padding-top: 10px;
   border-top: 1px solid var(--line);
-  background: rgb(248 250 247 / 92%);
-  box-shadow: 0 -8px 24px rgb(30 48 37 / 5%);
-  backdrop-filter: blur(12px);
+}
+
+.journey-controls .button {
+  min-height: 34px;
+  padding-inline: 13px;
+  font-size: 10px;
 }
 
 .celebration-layer {
@@ -1073,9 +1073,10 @@ kbd {
   }
 }
 
-.step-footer span {
+.journey-controls span {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 9px;
+  font-weight: 700;
 }
 
 .preview-dialog {
@@ -1673,8 +1674,8 @@ kbd {
     justify-self: end;
   }
 
-  .step-footer {
-    padding: 14px 20px;
+  .journey-controls {
+    gap: 8px;
   }
 
   .journey-shell {
