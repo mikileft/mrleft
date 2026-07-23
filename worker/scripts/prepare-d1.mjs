@@ -1,19 +1,38 @@
 import { readFile, writeFile } from "node:fs/promises";
 
-const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+let accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
 const apiToken = process.env.CLOUDFLARE_API_TOKEN;
 const databaseName = "zxl-prd-workbench";
 
-if (!accountId || !apiToken) {
-  throw new Error("CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN are required");
+if (!apiToken) {
+  throw new Error("CLOUDFLARE_API_TOKEN is required");
 }
 
-const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`;
 const headers = {
   Authorization: `Bearer ${apiToken}`,
   "Content-Type": "application/json",
 };
 
+if (!accountId) {
+  const accountsResponse = await fetch(
+    "https://api.cloudflare.com/client/v4/accounts",
+    { headers },
+  );
+  const accountsPayload = await readCloudflareResponse(
+    accountsResponse,
+    "list Cloudflare accounts",
+  );
+  const accounts = accountsPayload.result || [];
+  if (accounts.length !== 1) {
+    throw new Error(
+      "CLOUDFLARE_ACCOUNT_ID is required when the token can access multiple accounts",
+    );
+  }
+  accountId = accounts[0].id;
+  console.log("Discovered the Cloudflare account from the scoped API token");
+}
+
+const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`;
 const listResponse = await fetch(apiUrl, { headers });
 const listPayload = await readCloudflareResponse(listResponse, "list D1 databases");
 let database = listPayload.result?.find((item) => item.name === databaseName);

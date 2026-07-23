@@ -46,3 +46,19 @@ jobs:
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           WORKBENCH_ACCESS_TOKEN: ${{ secrets.WORKBENCH_ACCESS_TOKEN }}
+
+      - name: Verify production task API
+        shell: bash
+        env:
+          WORKBENCH_ACCESS_TOKEN: ${{ secrets.WORKBENCH_ACCESS_TOKEN }}
+        run: |
+          response="$(curl --fail-with-body --silent --show-error \
+            --retry 5 --retry-delay 2 \
+            -H "Origin: https://mikileft.github.io" \
+            -H "Authorization: Bearer ${WORKBENCH_ACCESS_TOKEN}" \
+            "https://zxl-prd-ai-mikileft.xiaolong-zuox.workers.dev/api/tasks")"
+          RESPONSE="$response" node -e '
+            const payload = JSON.parse(process.env.RESPONSE);
+            if (!Array.isArray(payload.tasks)) process.exit(1);
+            console.log("Production task API is ready");
+          '
