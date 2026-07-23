@@ -180,6 +180,15 @@
         <p class="task-gate-copy">
           选择历史任务继续推进，或创建一个新任务。后续需求、AI 建议和版本记录都会归属所选任务。
         </p>
+        <div id="taskServiceBanner" class="migration-banner" hidden>
+          <div>
+            <strong>先连接工作台服务</strong>
+            <p>配置 Worker 地址和访问令牌后，才能读取历史任务或创建新任务。</p>
+          </div>
+          <button class="button button-primary" id="configureTaskServiceButton" type="button">
+            配置服务
+          </button>
+        </div>
         <section class="task-entry-section">
           <div class="task-list-header">
             <div>

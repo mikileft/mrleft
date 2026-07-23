@@ -155,6 +155,7 @@ const elements = {
   taskDialog: document.querySelector("#taskDialog"),
   taskList: document.querySelector("#taskList"),
   taskCount: document.querySelector("#taskCount"),
+  taskServiceBanner: document.querySelector("#taskServiceBanner"),
   legacyDraftBanner: document.querySelector("#legacyDraftBanner"),
   newTaskTitle: document.querySelector("#newTaskTitle"),
   newTaskOwner: document.querySelector("#newTaskOwner"),
@@ -996,8 +997,7 @@ function renderTaskList() {
 
 async function openTaskCenter() {
   if (!aiSettings.endpoint || !aiSettings.accessToken) {
-    openAiSettings();
-    showToast("请先配置工作台服务");
+    await bootstrapTasks();
     return;
   }
   selectedEntryTaskId = activeTask?.id || null;
@@ -1008,6 +1008,16 @@ async function openTaskCenter() {
   } catch (error) {
     elements.taskList.innerHTML = `<div class="task-list-empty">${escapeHtml(error.message)}</div>`;
   }
+}
+
+function setTaskServiceAvailability(configured) {
+  elements.taskServiceBanner.hidden = configured;
+  elements.newTaskTitle.disabled = !configured;
+  elements.newTaskOwner.disabled = !configured;
+  elements.newTaskMode.disabled = !configured;
+  document.querySelector("#newTaskForm button[type='submit']").disabled = !configured;
+  document.querySelector("#refreshTasksButton").disabled = !configured;
+  document.querySelector("#migrateDraftButton").disabled = !configured;
 }
 
 function updateTaskGate() {
@@ -1109,15 +1119,23 @@ async function archiveTask(taskId) {
 
 async function bootstrapTasks() {
   updateTaskUi();
-  if (!aiSettings.endpoint || !aiSettings.accessToken) return;
+  activeTask = null;
+  selectedEntryTaskId = null;
+  updateTaskUi();
+  updateTaskGate();
+  if (!elements.taskDialog.open) elements.taskDialog.showModal();
+
+  if (!aiSettings.endpoint || !aiSettings.accessToken) {
+    setTaskServiceAvailability(false);
+    elements.taskCount.textContent = "未连接";
+    elements.taskList.innerHTML =
+      '<div class="task-list-empty">配置工作台服务后，这里会显示历史任务。</div>';
+    return;
+  }
+  setTaskServiceAvailability(true);
   try {
     await loadTasks();
-    activeTask = null;
-    selectedEntryTaskId = null;
-    updateTaskUi();
-    updateTaskGate();
     renderTaskList();
-    if (!elements.taskDialog.open) elements.taskDialog.showModal();
   } catch (error) {
     console.error("Task bootstrap failed", error);
     showToast(`任务服务未就绪：${error.message}`);
@@ -1390,6 +1408,9 @@ elements.aiDialog.addEventListener("click", (event) => {
 elements.aiSettingsDialog.addEventListener("click", (event) => {
   if (event.target === elements.aiSettingsDialog) elements.aiSettingsDialog.close();
 });
+elements.aiSettingsDialog.addEventListener("close", () => {
+  if (!activeTask) bootstrapTasks();
+});
 document
   .querySelector("#closeTaskButton")
   .addEventListener("click", () => {
@@ -1422,7 +1443,6 @@ document.querySelector("#aiSettingsForm").addEventListener("submit", (event) => 
   updateAiStatus();
   elements.aiSettingsDialog.close();
   showToast("AI 服务配置已保存");
-  bootstrapTasks();
 });
 
 document.querySelector("#newTaskForm").addEventListener("submit", async (event) => {
@@ -1441,6 +1461,13 @@ document.querySelector("#newTaskForm").addEventListener("submit", async (event) 
     showToast(`创建任务失败：${error.message}`);
   }
 });
+
+document
+  .querySelector("#configureTaskServiceButton")
+  .addEventListener("click", () => {
+    elements.taskDialog.close();
+    openAiSettings();
+  });
 
 document.querySelector("#migrateDraftButton").addEventListener("click", async () => {
   try {
