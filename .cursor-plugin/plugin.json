@@ -1,8 +1,8 @@
 {
   "name": "zxl-prd",
   "displayName": "ZXL PRD",
-  "description": "Create, refine, and review decision-ready product requirements documents with structured discovery, measurable requirements, validation, and independent reader testing.",
-  "version": "1.0.0",
+  "description": "Manage task-scoped, versioned product requirements with a configuration-driven Skill workflow, secure AI co-authoring, and validation.",
+  "version": "2.0.0",
   "author": {
     "name": "mikileft"
   },

@@ -16,15 +16,62 @@ Create a PRD that aligns decision-makers and gives delivery teams testable requi
 5. Prefer concise, decision-relevant content over generic completeness.
 6. Never start implementation while authoring or reviewing a PRD.
 
-## Choose a mode
+## Working approach
 
-Infer the mode from the request. If unclear, offer these options:
+Use one continuous workflow from discovery through delivery. Adapt questions to
+the available context without asking the user to choose a writing mode. When an
+existing PRD is provided, assess its gaps before proposing edits and preserve
+its valid content. Keep unresolved information as `TBD`; never fabricate it to
+make a draft appear complete.
 
-- **Full co-authoring**: discovery, section-by-section refinement, validation, and reader testing. Default for important or ambiguous initiatives.
-- **Fast draft**: produce a clearly labeled draft after a short discovery pass. Keep unknowns as `TBD`; do not fabricate them.
-- **Review**: assess an existing PRD, report prioritized gaps, and edit only after the user approves the proposed changes.
+## Optional visual workbench
 
-Tell the user which mode you are using and allow them to change it.
+The canonical workflow definition is
+[`config/workflow.json`](config/workflow.json). It defines the seven stages,
+linear questions, state defaults, stable checklist IDs, structural validation,
+and AI actions. Consult the generated human-readable map in
+[`references/workflow.generated.md`](references/workflow.generated.md).
+
+After changing the canonical configuration, run:
+
+```bash
+python3 .cursor/skills/zxl-prd/scripts/sync_workflow.py
+```
+
+Do not edit the generated browser, Worker, or reference files directly.
+
+This repository includes a zero-dependency visual companion at
+[`workbench/index.html`](../../../workbench/index.html). Use it when the user
+wants to organize PRD inputs through a guided interface before or alongside
+Agent co-authoring.
+
+The interface stores task drafts and versions in Cloudflare D1 with a local
+browser cache, and exports Markdown for subsequent Agent review. It does not
+replace source verification, judgment-based review, the deterministic
+validator, or independent reader testing. Treat exported content as user
+input: preserve its evidence labels, surface unresolved `TBD` items, and
+continue the structured workflow.
+
+When the optional AI gateway is configured, the workbench can ask questions,
+draft from existing context, rewrite a selected field, and review gaps. AI
+suggestions are candidates, not facts or decisions. Require explicit user
+acceptance before inserting them, retain `Assumption` and `TBD` labels, and
+never infer approval from the user accepting improved wording.
+
+The workbench organizes all PRD activity by task. Treat each task as an
+independent product decision context: do not mix evidence, requirements,
+metrics, or decisions across tasks. Draft autosaves are mutable working state;
+named versions are immutable checkpoints. Restoring a version must create a new
+checkpoint so later history remains traceable.
+
+The workbench entry flow is task-first. Before showing the PRD editor, require
+the user to select a historical task or create a new task. For a historical
+task, expose the next action only after selection: continue editing, inspect
+versions, or archive. A new task enters Phase 1 directly after creation.
+
+Within a task, present the seven phases as a linear journey with the active
+phase goal and guidance at the top of the page. Present one configured question
+at a time and preserve the stable question cursor when autosaving.
 
 ## Phase 1: Establish the document contract
 
@@ -39,7 +86,7 @@ Before drafting, determine:
 
 Accept shorthand, unstructured notes, files, and links. Read relevant project files or connected sources when available and authorized.
 
-Do not draft until at least the problem, audience, target user, desired outcome, and major constraints are understood. In Fast draft mode, unresolved items may remain explicitly marked `TBD`.
+Do not draft until at least the problem, audience, target user, desired outcome, and major constraints are understood. Unresolved items must remain explicitly marked `TBD`.
 
 ## Phase 2: Build the evidence map
 
@@ -72,8 +119,6 @@ If solution details are premature, keep them as hypotheses. Challenge requiremen
 
 Use the structure in [references/prd-template.md](references/prd-template.md). Adapt optional sections to the initiative; do not add empty ceremonial sections.
 
-For Full co-authoring mode:
-
 1. Propose the section plan and ask for confirmation.
 2. Start with the section containing the most uncertainty; write the executive summary last.
 3. For each section:
@@ -83,8 +128,6 @@ For Full co-authoring mode:
    - draft only the agreed content;
    - apply targeted edits until accepted.
 4. Re-read the whole document for consistency after all sections are drafted.
-
-For Fast draft mode, draft the complete template in one pass after discovery, but visibly retain assumptions and `TBD` items.
 
 ### Requirement quality rules
 
@@ -143,7 +186,7 @@ Fix Blockers and Majors or retain them in an explicit open-decisions section wit
 
 ## Phase 6: Independent reader test
 
-For Full co-authoring mode, use a fresh subagent with only the PRD content and this task:
+Use a fresh subagent with only the PRD content and this task:
 
 1. Answer 5–10 realistic questions a product, design, engineering, QA, security, or leadership reader would ask.
 2. Identify ambiguities, contradictions, unsupported assumptions, missing edge cases, and hidden implementation decisions.

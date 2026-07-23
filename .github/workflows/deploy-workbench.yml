@@ -1,0 +1,68 @@
+name: Deploy PRD Workbench
+
+on:
+  push:
+    branches:
+      - master
+      - cursor/install-prd-skills-ac31
+      - cursor/visual-prd-workbench-5b22
+    paths:
+      - "workbench/**"
+      - ".github/workflows/deploy-workbench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify synchronized Skill workflow
+        run: python3 .cursor/skills/zxl-prd/scripts/sync_workflow.py --check
+
+      - name: Build static site
+        shell: bash
+        run: |
+          mkdir -p _site/workbench
+          cp -R workbench/. _site/workbench/
+          touch _site/.nojekyll
+          cat > _site/index.html <<'EOF'
+          <!doctype html>
+          <html lang="zh-CN">
+            <head>
+              <meta charset="utf-8" />
+              <meta http-equiv="refresh" content="0; url=./workbench/" />
+              <title>ZXL PRD Workbench</title>
+            </head>
+            <body>
+              <a href="./workbench/">打开 ZXL PRD Workbench</a>
+            </body>
+          </html>
+          EOF
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

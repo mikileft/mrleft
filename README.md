@@ -4,12 +4,81 @@
 
 It supports:
 
-- full collaborative authoring, fast drafting, and review modes;
+- one continuous task-based workflow from discovery through delivery;
+- a guided visual workbench for structuring and exporting PRD inputs;
 - evidence, assumption, decision, and `TBD` tracking;
 - measurable functional and non-functional requirements;
 - product metrics with baselines, targets, guardrails, and owners;
 - AI-specific evaluation, safety, privacy, latency, and cost requirements;
 - deterministic validation and independent reader testing.
+
+## Visual workbench
+
+Once GitHub Pages is enabled for this repository, the continuously deployed
+workbench is available at:
+
+```text
+https://mikileft.github.io/mrleft/workbench/
+```
+
+Changes to `workbench/` on the configured branches are published by
+`.github/workflows/deploy-workbench.yml`. The workflow can also be run manually
+from the repository's **Actions** tab.
+
+Open `workbench/index.html` directly in a browser, or serve the repository
+locally:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then visit `http://localhost:8000/workbench/`.
+
+The workbench turns the ZXL PRD phases into a seven-step interface. It supports
+evidence labeling, requirement and metric editing, readiness tracking, local
+autosave, structural checks, live Markdown preview, and Markdown export. Drafts
+are cached locally and, after gateway configuration, synchronized to the
+task-scoped D1 store.
+
+The editor uses a linear top-of-page journey: stage context and progress remain
+visible above the focused form, while previous/next controls move one configured
+question at a time. The canonical question order, validation rules, checklist,
+and AI behavior live in
+`.cursor/skills/zxl-prd/config/workflow.json`.
+
+### Task-based workflow and history
+
+Every PRD belongs to a task. The task center supports:
+
+- a mandatory entry gate: select a historical task or create a new one before
+  entering the PRD editor;
+- contextual next actions for historical tasks: continue editing, inspect
+  versions, or archive;
+- creating, switching, progressing, completing, and archiving tasks;
+- task-scoped cloud autosave with a local browser cache;
+- migrating an existing pre-task local draft;
+- immutable version snapshots with change notes;
+- previewing and restoring historical versions without deleting later history.
+
+Task drafts and revisions are stored in Cloudflare D1 through the same
+single-user access token used by the AI gateway.
+
+### AI co-authoring
+
+Long-form fields include an **AI 共创** action with four tasks:
+
+- identify consequential gaps and ask focused questions;
+- draft content from existing facts while preserving assumptions and `TBD`s;
+- improve clarity, measurability, and testability;
+- review contradictions, unsupported claims, scope gaps, and risks.
+
+AI output never overwrites a field automatically. The user must explicitly
+append or replace content after reviewing the suggestion.
+
+The public workbench does not contain a model API key. Deploy the secure,
+OpenAI-compatible Cloudflare gateway in [`worker/`](worker/README.md), then use
+**配置 AI** in the workbench to save its `/api/assist` endpoint and a separate
+workbench access token in the current browser.
 
 ## Use as a project skill
 
