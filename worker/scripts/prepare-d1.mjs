@@ -14,7 +14,7 @@ const headers = {
 };
 
 if (!accountId) {
-  const accountsResponse = await fetch(
+  const accountsResponse = await cloudflareFetch(
     "https://api.cloudflare.com/client/v4/accounts",
     { headers },
   );
@@ -33,12 +33,12 @@ if (!accountId) {
 }
 
 const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`;
-const listResponse = await fetch(apiUrl, { headers });
+const listResponse = await cloudflareFetch(apiUrl, { headers });
 const listPayload = await readCloudflareResponse(listResponse, "list D1 databases");
 let database = listPayload.result?.find((item) => item.name === databaseName);
 
 if (!database) {
-  const createResponse = await fetch(apiUrl, {
+  const createResponse = await cloudflareFetch(apiUrl, {
     method: "POST",
     headers,
     body: JSON.stringify({ name: databaseName }),
@@ -72,6 +72,16 @@ await writeFile(
   "utf8",
 );
 console.log("Generated Wrangler configuration with D1 binding");
+
+async function cloudflareFetch(url, options) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const response = await fetch(url, options);
+    if (response.status !== 429 && response.status < 500) return response;
+    if (attempt === 3) return response;
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+  }
+  throw new Error("Cloudflare request failed");
+}
 
 async function readCloudflareResponse(response, operation) {
   const payload = await response.json().catch(() => ({}));
