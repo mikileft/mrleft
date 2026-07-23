@@ -1289,6 +1289,10 @@ kbd {
   font-size: 23px;
 }
 
+.icon-button[hidden] {
+  display: none;
+}
+
 #markdownPreview {
   height: calc(100% - 84px);
   margin: 0;
