@@ -77,7 +77,6 @@ const checklistItems = [
 ];
 
 const defaults = {
-  mode: "full",
   currentStep: 0,
   productName: "",
   owner: "",
@@ -129,7 +128,6 @@ const elements = {
   stepCounter: document.querySelector("#stepCounter"),
   previousButton: document.querySelector("#previousButton"),
   nextButton: document.querySelector("#nextButton"),
-  mode: document.querySelector("#mode"),
   activeTaskTitle: document.querySelector("#activeTaskTitle"),
   activeTaskStatus: document.querySelector("#activeTaskStatus"),
   taskContext: document.querySelector("#taskContext"),
@@ -159,7 +157,6 @@ const elements = {
   legacyDraftBanner: document.querySelector("#legacyDraftBanner"),
   newTaskTitle: document.querySelector("#newTaskTitle"),
   newTaskOwner: document.querySelector("#newTaskOwner"),
-  newTaskMode: document.querySelector("#newTaskMode"),
   taskNextActions: document.querySelector("#taskNextActions"),
   selectedTaskTitle: document.querySelector("#selectedTaskTitle"),
   selectedTaskMeta: document.querySelector("#selectedTaskMeta"),
@@ -864,9 +861,13 @@ function hasLegacyDraft() {
 }
 
 function normalizePrd(prd) {
+  const cleanPrd =
+    prd && typeof prd === "object"
+      ? Object.fromEntries(Object.entries(prd).filter(([key]) => key !== "mode"))
+      : {};
   return {
     ...structuredClone(defaults),
-    ...(prd && typeof prd === "object" ? prd : {}),
+    ...cleanPrd,
     checks: checklistItems.map((_, index) => Boolean(prd?.checks?.[index])),
   };
 }
@@ -1014,7 +1015,6 @@ function setTaskServiceAvailability(configured) {
   elements.taskServiceBanner.hidden = configured;
   elements.newTaskTitle.disabled = !configured;
   elements.newTaskOwner.disabled = !configured;
-  elements.newTaskMode.disabled = !configured;
   document.querySelector("#newTaskForm button[type='submit']").disabled = !configured;
   document.querySelector("#refreshTasksButton").disabled = !configured;
   document.querySelector("#migrateDraftButton").disabled = !configured;
@@ -1044,11 +1044,10 @@ function updateSelectedTaskActions() {
     `${taskStatuses[task.status] || task.status} · 版本 ${task.current_revision || 1} · 更新于 ${formatDate(task.updated_at)}`;
 }
 
-async function createTask(title, owner, prd = null, mode = "full") {
+async function createTask(title, owner, prd = null) {
   const taskPrd = normalizePrd(prd || {});
   if (!hasText(taskPrd.productName)) taskPrd.productName = title;
   if (!hasText(taskPrd.owner)) taskPrd.owner = owner;
-  taskPrd.mode = mode;
   const payload = await apiRequest("/api/tasks", {
     method: "POST",
     body: JSON.stringify({
@@ -1075,7 +1074,6 @@ async function activateTask(taskOrId) {
   state = normalizePrd(task.prd);
   localStorage.setItem(ACTIVE_TASK_KEY, task.id);
   localStorage.setItem(`${TASK_CACHE_PREFIX}${task.id}`, JSON.stringify(state));
-  elements.mode.value = state.mode;
   upsertTaskSummary(task);
   renderStep();
   showToast(`已打开任务：${task.title}`);
@@ -1273,7 +1271,6 @@ function buildAiContext() {
           revision: activeTask.current_revision,
         }
       : null,
-    mode: state.mode,
     phase: steps[state.currentStep].short,
     productName: state.productName,
     problem: state.problem,
@@ -1338,17 +1335,17 @@ async function runAiAssistant() {
   }
 }
 
-function applyAiResult(mode) {
+function applyAiResult(operation) {
   if (!aiTarget.key || !elements.aiResult.value) return;
   const suggestion = elements.aiResult.value.trim();
   state[aiTarget.key] =
-    mode === "append" && hasText(state[aiTarget.key])
+    operation === "append" && hasText(state[aiTarget.key])
       ? `${state[aiTarget.key].trim()}\n${suggestion}`
       : suggestion;
   saveState();
   elements.aiDialog.close();
   renderStep();
-  showToast(mode === "append" ? "AI 建议已追加" : "字段内容已替换");
+  showToast(operation === "append" ? "AI 建议已追加" : "字段内容已替换");
 }
 
 function goToStep(index) {
@@ -1367,13 +1364,6 @@ elements.previousButton.addEventListener("click", () => goToStep(state.currentSt
 elements.nextButton.addEventListener("click", () => {
   if (state.currentStep === steps.length - 1) exportMarkdown();
   else goToStep(state.currentStep + 1);
-});
-
-elements.mode.value = state.mode;
-elements.mode.addEventListener("change", () => {
-  state.mode = elements.mode.value;
-  saveState();
-  showToast(`已切换为${elements.mode.options[elements.mode.selectedIndex].text}`);
 });
 
 document.querySelector("#previewButton").addEventListener("click", openPreview);
@@ -1451,8 +1441,6 @@ document.querySelector("#newTaskForm").addEventListener("submit", async (event) 
     await createTask(
       elements.newTaskTitle.value.trim(),
       elements.newTaskOwner.value.trim(),
-      null,
-      elements.newTaskMode.value,
     );
     elements.newTaskTitle.value = "";
     elements.newTaskOwner.value = "";
@@ -1473,7 +1461,7 @@ document.querySelector("#migrateDraftButton").addEventListener("click", async ()
   try {
     const legacyState = structuredClone(state);
     const title = state.productName || "迁移的 PRD 草稿";
-    await createTask(title, state.owner || "", legacyState, legacyState.mode);
+    await createTask(title, state.owner || "", legacyState);
     localStorage.removeItem(STORAGE_KEY);
     elements.taskDialog.close();
     showToast("旧版草稿已迁移为任务");
@@ -1568,7 +1556,6 @@ document.querySelector("#resetButton").addEventListener("click", () => {
   if (!window.confirm(`确定清空${target}吗？已保存的历史版本不会删除。`)) return;
   state = structuredClone(defaults);
   if (!activeTask) localStorage.removeItem(STORAGE_KEY);
-  elements.mode.value = state.mode;
   saveState();
   renderStep();
   showToast("工作台已清空");

@@ -4,7 +4,7 @@
 
 It supports:
 
-- full collaborative authoring, fast drafting, and review modes;
+- one continuous task-based workflow from discovery through delivery;
 - a guided visual workbench for structuring and exporting PRD inputs;
 - evidence, assumption, decision, and `TBD` tracking;
 - measurable functional and non-functional requirements;

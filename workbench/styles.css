@@ -133,35 +133,12 @@ select {
   font-size: 9px;
 }
 
-.mode-picker {
-  margin: 18px 0;
-}
-
-.mode-picker label {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.mode-picker select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--ink);
-  outline: none;
-}
-
 .step-nav {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: 3px;
+  margin-top: 18px;
   overflow: auto;
 }
 
@@ -917,8 +894,7 @@ kbd {
 .new-task-form {
   display: grid;
   grid-template-columns:
-    minmax(180px, 1.4fr) minmax(130px, 0.8fr)
-    minmax(120px, 0.7fr) auto;
+    minmax(180px, 1.4fr) minmax(130px, 0.8fr) auto;
   gap: 10px;
   align-items: end;
   padding: 16px;
@@ -1338,7 +1314,6 @@ kbd {
   }
 
   .brand > span:last-child,
-  .mode-picker,
   .step-copy,
   .step-check,
   .sidebar-footer,

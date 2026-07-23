@@ -27,15 +27,6 @@
           <small><span id="activeTaskStatus">待创建</span><span>管理任务 →</span></small>
         </button>
 
-        <div class="mode-picker" aria-label="共创模式">
-          <label for="mode">共创模式</label>
-          <select id="mode">
-            <option value="full">完整共创</option>
-            <option value="fast">快速草案</option>
-            <option value="review">评审模式</option>
-          </select>
-        </div>
-
         <nav id="stepNav" class="step-nav" aria-label="PRD 创建步骤"></nav>
 
         <div class="sidebar-footer">
@@ -237,14 +228,6 @@
           <div class="field">
             <label for="newTaskOwner"><span>负责人</span></label>
             <input id="newTaskOwner" maxlength="120" placeholder="姓名或角色" />
-          </div>
-          <div class="field">
-            <label for="newTaskMode"><span>共创模式</span></label>
-            <select id="newTaskMode">
-              <option value="full">完整共创</option>
-              <option value="fast">快速草案</option>
-              <option value="review">评审模式</option>
-            </select>
           </div>
           <button class="button button-primary" type="submit">创建并进入 →</button>
         </form>
