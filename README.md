@@ -39,6 +39,12 @@ evidence labeling, requirement and metric editing, readiness tracking, local
 autosave, structural checks, live Markdown preview, and Markdown export. Drafts
 remain in the browser's local storage; no content is sent to a server.
 
+The editor uses a linear top-of-page journey: stage context and progress remain
+visible above the focused form, while previous/next controls move through the
+seven stages. Each stage includes an optional product-quality mini challenge.
+Correct answers earn task-scoped exploration points and celebration feedback;
+they never change PRD content or block delivery.
+
 ### Task-based workflow and history
 
 Every PRD belongs to a task. The task center supports:

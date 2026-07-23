@@ -63,6 +63,11 @@ the user to select a historical task or create a new task. For a historical
 task, expose the next action only after selection: continue editing, inspect
 versions, or archive. A new task enters Phase 1 directly after creation.
 
+Within a task, present the seven phases as a linear journey with the active
+phase goal and guidance at the top of the page. Optional stage challenges may
+reinforce PRD quality concepts, but their scores must not alter requirements,
+evidence labels, validation results, or delivery readiness.
+
 ## Phase 1: Establish the document contract
 
 Before drafting, determine:

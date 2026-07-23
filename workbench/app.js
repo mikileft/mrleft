@@ -17,6 +17,8 @@ const steps = [
     subtitle: "文档契约",
     phase: "PHASE 1 · 建立文档契约",
     title: "先对齐问题，再讨论方案",
+    description:
+      "先确定这份 PRD 要帮助谁做什么决策，并记录目标用户、期望结果与关键约束。",
     tip: "先描述目标用户正在经历的问题，不要急于写功能清单。",
   },
   {
@@ -24,6 +26,8 @@ const steps = [
     subtitle: "事实与假设",
     phase: "PHASE 2 · 构建证据地图",
     title: "让每个关键判断都有出处",
+    description:
+      "把输入区分为事实、决策、假设与待定项，让后续范围和需求建立在可追溯证据上。",
     tip: "无法证明的内容不是事实；将它标为假设，并写明验证方法。",
   },
   {
@@ -31,6 +35,8 @@ const steps = [
     subtitle: "目标与范围",
     phase: "PHASE 3 · 先框定，再细化",
     title: "明确结果、边界与关键旅程",
+    description:
+      "对齐为什么现在做、希望改变什么，以及本次明确包含、排除和延期的内容。",
     tip: "好范围不仅说明要做什么，也说明不做什么以及推迟什么。",
   },
   {
@@ -38,6 +44,8 @@ const steps = [
     subtitle: "行为与验收",
     phase: "PHASE 4 · 共创 PRD",
     title: "把需求写成可验证的行为",
+    description:
+      "使用稳定编号、合理优先级和可观察验收标准，把方向转化为可交付需求。",
     tip: "每条需求都应包含触发条件、预期结果，以及失败或恢复行为。",
   },
   {
@@ -45,6 +53,8 @@ const steps = [
     subtitle: "成功定义",
     phase: "PHASE 4 · 度量与交付",
     title: "定义怎样才算真正成功",
+    description:
+      "定义结果指标、护栏、风险、依赖和回滚标准，让上线后的判断有明确依据。",
     tip: "指标需要基线或测量计划、目标、护栏、周期、来源和负责人。",
   },
   {
@@ -52,6 +62,8 @@ const steps = [
     subtitle: "结构与判断",
     phase: "PHASE 5–6 · 校验与读者测试",
     title: "在交付前暴露歧义与缺口",
+    description:
+      "结合结构校验与人工判断，发现矛盾、无依据主张、遗漏边界和隐藏决策。",
     tip: "自动检查只能发现结构信号，不能证明产品推理正确。",
   },
   {
@@ -59,7 +71,88 @@ const steps = [
     subtitle: "摘要与决策",
     phase: "PHASE 7 · 交付",
     title: "形成可供决策的完整文档",
+    description:
+      "用执行摘要、开放决策和明确下一步收束全文，形成可审批、可执行的交付物。",
     tip: "交付前请核验事实、链接、指标、合规声明和利益相关者批准。",
+  },
+];
+
+const stageQuests = [
+  {
+    icon: "🧭",
+    title: "问题侦探",
+    question: "哪一种问题陈述更适合写进 PRD？",
+    options: [
+      "我们需要开发一个更智能的推荐系统",
+      "新用户因缺少引导无法完成首次配置，导致激活率下降",
+      "页面应该更现代、更直观",
+    ],
+    answer: 1,
+    hint: "好的问题陈述包含用户、阻碍和可观察影响，而不是预设方案。",
+  },
+  {
+    icon: "🔎",
+    title: "证据分拣员",
+    question: "一个合理但尚未验证的用户判断应该标为什么？",
+    options: ["Fact", "Decision", "Assumption"],
+    answer: 2,
+    hint: "没有来源或验证结果时，应保留为 Assumption 并写明验证方式。",
+  },
+  {
+    icon: "🗺️",
+    title: "范围守门员",
+    question: "哪种写法最能降低范围误解？",
+    options: [
+      "尽量满足所有相关需求",
+      "只写本期要做的功能",
+      "同时列明范围内、范围外与延期项",
+    ],
+    answer: 2,
+    hint: "清晰边界需要同时说明做什么、不做什么和推迟什么。",
+  },
+  {
+    icon: "🧩",
+    title: "验收拼图",
+    question: "哪条验收标准最容易通过或失败判定？",
+    options: [
+      "页面加载要足够快",
+      "用户点击保存后 2 秒内看到成功状态",
+      "交互体验应该自然流畅",
+    ],
+    answer: 1,
+    hint: "可测试标准应包含触发、可观察结果和明确阈值。",
+  },
+  {
+    icon: "🎯",
+    title: "指标射手",
+    question: "一个完整的核心指标至少还需要什么？",
+    options: [
+      "漂亮的图表",
+      "基线、目标、周期、来源和负责人",
+      "更多形容词",
+    ],
+    answer: 1,
+    hint: "没有口径、时间窗和责任人的指标无法支持继续或停止决策。",
+  },
+  {
+    icon: "🛡️",
+    title: "质量鉴别师",
+    question: "结构校验脚本能够证明什么？",
+    options: [
+      "证明产品方向一定正确",
+      "证明所有用户都认可方案",
+      "发现缺失章节等结构信号，但不能替代产品判断",
+    ],
+    answer: 2,
+    hint: "自动检查擅长结构信号，产品推理仍需证据和独立评审。",
+  },
+  {
+    icon: "🏁",
+    title: "交付冲刺",
+    question: "执行摘要最适合在什么时候完成？",
+    options: ["正文完成并一致性检查后", "访谈开始前", "功能列表确定前"],
+    answer: 0,
+    hint: "执行摘要应反映最终范围、指标与待决事项，因此最后编写。",
   },
 ];
 
@@ -108,6 +201,7 @@ const defaults = {
   metrics: [],
   risks: [],
   checks: Array(checklistItems.length).fill(false),
+  questWins: {},
 };
 
 let state = loadState();
@@ -125,6 +219,7 @@ const elements = {
   stepContent: document.querySelector("#stepContent"),
   phaseLabel: document.querySelector("#phaseLabel"),
   stepTitle: document.querySelector("#stepTitle"),
+  stageDescription: document.querySelector("#stageDescription"),
   stepCounter: document.querySelector("#stepCounter"),
   previousButton: document.querySelector("#previousButton"),
   nextButton: document.querySelector("#nextButton"),
@@ -135,6 +230,10 @@ const elements = {
   readinessScore: document.querySelector("#readinessScore"),
   readinessBar: document.querySelector("#readinessBar"),
   readinessHint: document.querySelector("#readinessHint"),
+  journeyXp: document.querySelector("#journeyXp"),
+  journeyFill: document.querySelector("#journeyFill"),
+  journeyCharacter: document.querySelector("#journeyCharacter"),
+  stageQuest: document.querySelector("#stageQuest"),
   coachTip: document.querySelector("#coachTip"),
   previewDialog: document.querySelector("#previewDialog"),
   markdownPreview: document.querySelector("#markdownPreview"),
@@ -227,13 +326,14 @@ function field(key, label, options = {}) {
 }
 
 function intro(title, copy) {
-  return `<div class="section-intro"><h2>${title}</h2><p>${copy}</p></div>`;
+  return `<div class="section-intro"><span>本阶段产出</span><h2>${title}</h2></div>`;
 }
 
 function renderStep() {
   const step = steps[state.currentStep];
   elements.phaseLabel.textContent = step.phase;
   elements.stepTitle.textContent = step.title;
+  elements.stageDescription.textContent = step.description;
   elements.coachTip.textContent = step.tip;
   elements.stepCounter.textContent = `步骤 ${state.currentStep + 1} / ${steps.length}`;
   elements.previousButton.disabled = state.currentStep === 0;
@@ -242,6 +342,7 @@ function renderStep() {
   elements.stepContent.innerHTML = renderers[state.currentStep]();
   renderNavigation();
   bindStepEvents();
+  renderStageQuest();
   updateDashboard();
   updateTaskUi();
 }
@@ -250,15 +351,81 @@ function renderNavigation() {
   elements.stepNav.innerHTML = steps
     .map((step, index) => {
       const complete = completionForStep(index) >= 0.75;
+      const accomplished = index < state.currentStep || (index === state.currentStep && complete);
       return `
-        <button class="step-button ${index === state.currentStep ? "active" : ""} ${complete ? "complete" : ""}" data-step="${index}" type="button">
-          <span class="step-number">${complete ? "✓" : index + 1}</span>
+        <div class="step-button ${index === state.currentStep ? "active" : ""} ${accomplished ? "complete" : ""} ${index > state.currentStep ? "locked" : ""}">
+          <span class="step-number">${accomplished ? "✓" : index + 1}</span>
           <span class="step-copy"><strong>${step.short}</strong><small>${step.subtitle}</small></span>
-          <span class="step-check">${complete ? "✓" : ""}</span>
-        </button>
+        </div>
       `;
     })
     .join("");
+}
+
+function renderStageQuest() {
+  const quest = stageQuests[state.currentStep];
+  const won = Boolean(state.questWins?.[state.currentStep]);
+  elements.stageQuest.innerHTML = `
+    <div class="quest-heading">
+      <span class="quest-icon">${quest.icon}</span>
+      <div>
+        <span>阶段小游戏</span>
+        <strong>${quest.title}</strong>
+      </div>
+      <b>${won ? "已通关 +10" : "+10 探索值"}</b>
+    </div>
+    <p class="quest-question">${quest.question}</p>
+    <div class="quest-options">
+      ${quest.options
+        .map(
+          (option, index) => `
+            <button class="quest-option ${won && index === quest.answer ? "correct" : ""}" data-quest-option="${index}" type="button" ${won ? "disabled" : ""}>
+              <span>${String.fromCharCode(65 + index)}</span>${escapeHtml(option)}
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
+    <p class="quest-feedback ${won ? "success" : ""}" id="questFeedback">
+      ${won ? `通关成功！${quest.hint}` : "选择你认为最专业的答案。答错可以继续挑战。"}
+    </p>
+  `;
+  elements.stageQuest.querySelectorAll("[data-quest-option]").forEach((button) => {
+    button.addEventListener("click", () => {
+      answerStageQuest(Number(button.dataset.questOption), button);
+    });
+  });
+}
+
+function answerStageQuest(answer, button) {
+  const quest = stageQuests[state.currentStep];
+  const feedback = document.querySelector("#questFeedback");
+  if (answer !== quest.answer) {
+    button.classList.remove("wrong");
+    void button.offsetWidth;
+    button.classList.add("wrong");
+    feedback.textContent = `再想一步：${quest.hint}`;
+    return;
+  }
+  state.questWins = { ...(state.questWins || {}), [state.currentStep]: true };
+  saveState();
+  renderStageQuest();
+  updateDashboard();
+  emitCelebration();
+  showToast(`阶段挑战通关，获得 10 探索值！`);
+}
+
+function emitCelebration() {
+  const icons = ["✦", "★", "●", "◆", "🎉"];
+  const layer = document.querySelector("#celebrationLayer");
+  layer.innerHTML = Array.from(
+    { length: 24 },
+    (_, index) =>
+      `<span style="--x:${8 + Math.random() * 84}vw;--delay:${Math.random() * 0.35}s;--spin:${index % 2 ? 1 : -1}">${icons[index % icons.length]}</span>`,
+  ).join("");
+  setTimeout(() => {
+    layer.innerHTML = "";
+  }, 1800);
 }
 
 const renderers = [
@@ -555,6 +722,18 @@ function updateDashboard() {
       : score >= 50
         ? "框架已形成，继续补全可测试需求与指标。"
         : "完成关键字段后即可进入下一阶段。";
+
+  const questWins = Object.values(state.questWins || {}).filter(Boolean).length;
+  const explorationValue = score + questWins * 10;
+  const journeyProgress = Math.min(
+    100,
+    ((state.currentStep + completionForStep(state.currentStep)) / steps.length) * 100,
+  );
+  const journeyCharacters = ["🧭", "🔎", "🗺️", "🧩", "🎯", "🛡️", "🚀"];
+  elements.journeyXp.textContent = `${explorationValue} 探索值`;
+  elements.journeyFill.style.width = `${journeyProgress}%`;
+  elements.journeyCharacter.style.left = `${Math.max(2, journeyProgress)}%`;
+  elements.journeyCharacter.textContent = journeyCharacters[state.currentStep];
 
   const counts = { Fact: 0, Decision: 0, Assumption: 0, TBD: 0 };
   state.evidence.forEach((item) => {
@@ -1354,11 +1533,6 @@ function goToStep(index) {
   renderStep();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
-
-elements.stepNav.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-step]");
-  if (button) goToStep(Number(button.dataset.step));
-});
 
 elements.previousButton.addEventListener("click", () => goToStep(state.currentStep - 1));
 elements.nextButton.addEventListener("click", () => {

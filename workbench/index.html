@@ -27,8 +27,6 @@
           <small><span id="activeTaskStatus">待创建</span><span>管理任务 →</span></small>
         </button>
 
-        <nav id="stepNav" class="step-nav" aria-label="PRD 创建步骤"></nav>
-
         <div class="sidebar-footer">
           <div class="save-status">
             <span class="status-dot"></span>
@@ -42,29 +40,45 @@
 
       <main>
         <header class="topbar">
-          <div>
-            <p class="eyebrow" id="phaseLabel">PHASE 1 · 建立文档契约</p>
-            <h1 id="stepTitle">先对齐问题，再讨论方案</h1>
-            <button class="task-context" id="taskContext" type="button">
-              请先创建或选择一个任务
-            </button>
+          <div class="topbar-row">
+            <div class="stage-heading">
+              <p class="eyebrow" id="phaseLabel">PHASE 1 · 建立文档契约</p>
+              <h1 id="stepTitle">先对齐问题，再讨论方案</h1>
+              <p class="stage-description" id="stageDescription">
+                先确定这份 PRD 要帮助谁做什么决策，并记录用户、结果与约束。
+              </p>
+              <button class="task-context" id="taskContext" type="button">
+                请先创建或选择一个任务
+              </button>
+            </div>
+            <div class="topbar-actions">
+              <button class="button button-ghost" id="historyButton" type="button">
+                历史版本
+              </button>
+              <button class="button button-ghost" id="saveVersionButton" type="button">
+                保存版本
+              </button>
+              <button class="button button-ai" id="aiAssistantButton" type="button">
+                ✦ AI 助手
+              </button>
+              <button class="button button-ghost" id="previewButton" type="button">
+                预览文档
+              </button>
+              <button class="button button-primary" id="exportButton" type="button">
+                导出 Markdown
+              </button>
+            </div>
           </div>
-          <div class="topbar-actions">
-            <button class="button button-ghost" id="historyButton" type="button">
-              历史版本
-            </button>
-            <button class="button button-ghost" id="saveVersionButton" type="button">
-              保存版本
-            </button>
-            <button class="button button-ai" id="aiAssistantButton" type="button">
-              ✦ AI 助手
-            </button>
-            <button class="button button-ghost" id="previewButton" type="button">
-              预览文档
-            </button>
-            <button class="button button-primary" id="exportButton" type="button">
-              导出 Markdown
-            </button>
+          <div class="journey-shell">
+            <div class="journey-meta">
+              <span>PRD 探索旅程</span>
+              <strong id="journeyXp">0 探索值</strong>
+            </div>
+            <nav id="stepNav" class="step-nav" aria-label="PRD 创建步骤"></nav>
+            <div class="journey-track" aria-hidden="true">
+              <div class="journey-fill" id="journeyFill"></div>
+              <span class="journey-character" id="journeyCharacter">🚀</span>
+            </div>
           </div>
         </header>
 
@@ -88,6 +102,10 @@
                 <div id="readinessBar" class="progress-bar"></div>
               </div>
               <p id="readinessHint">完成关键字段后即可进入下一阶段。</p>
+            </section>
+
+            <section class="quest-card" id="stageQuest">
+              <div class="quest-loading">正在准备本阶段挑战…</div>
             </section>
 
             <section class="insight-card">
@@ -330,6 +348,7 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="celebrationLayer" class="celebration-layer" aria-hidden="true"></div>
     <script src="./app.js"></script>
   </body>
 </html>
