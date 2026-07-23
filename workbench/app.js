@@ -1,5 +1,15 @@
 const STORAGE_KEY = "zxl-prd-workbench-v1";
 const AI_SETTINGS_KEY = "zxl-prd-ai-settings-v1";
+const ACTIVE_TASK_KEY = "zxl-prd-active-task-v1";
+const TASK_CACHE_PREFIX = "zxl-prd-task-cache-v1:";
+
+const taskStatuses = {
+  draft: "草稿",
+  in_progress: "进行中",
+  review: "评审中",
+  completed: "已完成",
+  archived: "已归档",
+};
 
 const steps = [
   {
@@ -104,7 +114,10 @@ const defaults = {
 let state = loadState();
 let aiSettings = loadAiSettings();
 let aiTarget = { key: null, label: "当前阶段" };
+let tasks = [];
+let activeTask = null;
 let saveTimer;
+let remoteSaveTimer;
 let toastTimer;
 
 const elements = {
@@ -116,6 +129,9 @@ const elements = {
   previousButton: document.querySelector("#previousButton"),
   nextButton: document.querySelector("#nextButton"),
   mode: document.querySelector("#mode"),
+  activeTaskTitle: document.querySelector("#activeTaskTitle"),
+  activeTaskStatus: document.querySelector("#activeTaskStatus"),
+  taskContext: document.querySelector("#taskContext"),
   saveStatus: document.querySelector("#saveStatus"),
   readinessScore: document.querySelector("#readinessScore"),
   readinessBar: document.querySelector("#readinessBar"),
@@ -135,6 +151,15 @@ const elements = {
   aiStatus: document.querySelector("#aiStatus"),
   aiEndpoint: document.querySelector("#aiEndpoint"),
   aiAccessToken: document.querySelector("#aiAccessToken"),
+  taskDialog: document.querySelector("#taskDialog"),
+  taskList: document.querySelector("#taskList"),
+  taskCount: document.querySelector("#taskCount"),
+  legacyDraftBanner: document.querySelector("#legacyDraftBanner"),
+  newTaskTitle: document.querySelector("#newTaskTitle"),
+  newTaskOwner: document.querySelector("#newTaskOwner"),
+  historyDialog: document.querySelector("#historyDialog"),
+  revisionList: document.querySelector("#revisionList"),
+  revisionNote: document.querySelector("#revisionNote"),
   toast: document.querySelector("#toast"),
 };
 
@@ -215,6 +240,7 @@ function renderStep() {
   renderNavigation();
   bindStepEvents();
   updateDashboard();
+  updateTaskUi();
 }
 
 function renderNavigation() {
@@ -468,14 +494,22 @@ function addItem(collection) {
 }
 
 function queueSave() {
-  elements.saveStatus.textContent = "正在保存…";
+  elements.saveStatus.textContent = activeTask ? "正在同步任务…" : "正在保存…";
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveState, 300);
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  elements.saveStatus.textContent = "已自动保存到本机";
+  const storageKey = activeTask
+    ? `${TASK_CACHE_PREFIX}${activeTask.id}`
+    : STORAGE_KEY;
+  localStorage.setItem(storageKey, JSON.stringify(state));
+  if (activeTask) {
+    queueRemoteTaskSave();
+    elements.saveStatus.textContent = "已保存本机，等待同步";
+  } else {
+    elements.saveStatus.textContent = "已自动保存到本机";
+  }
 }
 
 function hasText(value) {
@@ -783,6 +817,368 @@ function showToast(message) {
   toastTimer = setTimeout(() => elements.toast.classList.remove("visible"), 2200);
 }
 
+function gatewayBaseUrl() {
+  return String(aiSettings.endpoint || "")
+    .trim()
+    .replace(/\/api\/assist\/?$/, "")
+    .replace(/\/$/, "");
+}
+
+async function apiRequest(path, options = {}) {
+  const baseUrl = gatewayBaseUrl();
+  if (!baseUrl || !aiSettings.accessToken) {
+    throw new Error("请先配置工作台服务");
+  }
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${aiSettings.accessToken}`,
+      ...(options.headers || {}),
+    },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.error || `服务请求失败（${response.status}）`);
+  }
+  return payload;
+}
+
+function hasLegacyDraft() {
+  return [
+    state.productName,
+    state.problem,
+    state.targetUsers,
+    state.desiredOutcome,
+    state.goals,
+    state.inScope,
+  ].some(hasText) || [state.evidence, state.requirements, state.metrics, state.risks].some(
+    (items) => items.length > 0,
+  );
+}
+
+function normalizePrd(prd) {
+  return {
+    ...structuredClone(defaults),
+    ...(prd && typeof prd === "object" ? prd : {}),
+    checks: checklistItems.map((_, index) => Boolean(prd?.checks?.[index])),
+  };
+}
+
+function updateTaskUi() {
+  const title = activeTask?.title || "尚未选择任务";
+  const status = activeTask ? taskStatuses[activeTask.status] || activeTask.status : "待创建";
+  elements.activeTaskTitle.textContent = title;
+  elements.activeTaskStatus.textContent = status;
+  elements.taskContext.textContent = activeTask
+    ? `任务：${title} · ${status} · 版本 ${activeTask.current_revision || 1}`
+    : "请先创建或选择一个任务";
+  document.querySelector("#historyButton").disabled = !activeTask;
+  document.querySelector("#saveVersionButton").disabled = !activeTask;
+}
+
+function queueRemoteTaskSave() {
+  if (!activeTask) return;
+  clearTimeout(remoteSaveTimer);
+  const taskId = activeTask.id;
+  remoteSaveTimer = setTimeout(() => syncActiveTask(taskId), 900);
+}
+
+async function syncActiveTask(expectedTaskId = activeTask?.id) {
+  if (!activeTask || activeTask.id !== expectedTaskId) return;
+  clearTimeout(remoteSaveTimer);
+  remoteSaveTimer = null;
+  const taskId = activeTask.id;
+  try {
+    const payload = await apiRequest(`/api/tasks/${taskId}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        title: activeTask.title,
+        status: activeTask.status,
+        owner: state.owner || activeTask.owner,
+        prd: state,
+      }),
+    });
+    if (activeTask?.id === taskId) {
+      activeTask = payload.task;
+      upsertTaskSummary(payload.task);
+      elements.saveStatus.textContent = "任务已同步到云端";
+      updateTaskUi();
+    }
+  } catch (error) {
+    elements.saveStatus.textContent = "云端同步失败，本机已保存";
+    console.error("Task sync failed", error);
+  }
+}
+
+function upsertTaskSummary(task) {
+  const summary = {
+    id: task.id,
+    title: task.title,
+    status: task.status,
+    owner: task.owner,
+    current_revision: task.current_revision,
+    created_at: task.created_at,
+    updated_at: task.updated_at,
+  };
+  const index = tasks.findIndex((item) => item.id === task.id);
+  if (index >= 0) tasks[index] = summary;
+  else tasks.unshift(summary);
+  tasks.sort((left, right) => String(right.updated_at).localeCompare(left.updated_at));
+  renderTaskList();
+}
+
+async function loadTasks() {
+  const payload = await apiRequest("/api/tasks");
+  tasks = payload.tasks || [];
+  renderTaskList();
+  return tasks;
+}
+
+function formatDate(value) {
+  if (!value) return "未知时间";
+  try {
+    return new Intl.DateTimeFormat("zh-CN", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function renderTaskList() {
+  elements.taskCount.textContent = `${tasks.length} 个`;
+  elements.legacyDraftBanner.hidden = Boolean(activeTask) || !hasLegacyDraft();
+  if (!tasks.length) {
+    elements.taskList.innerHTML =
+      '<div class="task-list-empty">还没有任务。创建第一个任务后，所有 PRD 内容和版本都将归属该任务。</div>';
+    return;
+  }
+  elements.taskList.innerHTML = tasks
+    .map(
+      (task) => `
+        <article class="task-item ${task.id === activeTask?.id ? "active" : ""}">
+          <div class="task-item-copy">
+            <strong>${escapeHtml(task.title)}</strong>
+            <small>v${task.current_revision || 1} · 更新于 ${formatDate(task.updated_at)}</small>
+          </div>
+          <select class="task-status-select" data-task-status="${task.id}" aria-label="任务状态">
+            ${Object.entries(taskStatuses)
+              .filter(([value]) => value !== "archived")
+              .map(
+                ([value, label]) =>
+                  `<option value="${value}" ${task.status === value ? "selected" : ""}>${label}</option>`,
+              )
+              .join("")}
+          </select>
+          <div class="task-item-actions">
+            <button class="button button-ghost" data-open-task="${task.id}" type="button">
+              ${task.id === activeTask?.id ? "当前" : "打开"}
+            </button>
+            <button class="button button-ghost button-danger" data-archive-task="${task.id}" type="button">归档</button>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+async function openTaskCenter() {
+  if (!aiSettings.endpoint || !aiSettings.accessToken) {
+    openAiSettings();
+    showToast("请先配置工作台服务");
+    return;
+  }
+  elements.taskDialog.showModal();
+  try {
+    await loadTasks();
+  } catch (error) {
+    elements.taskList.innerHTML = `<div class="task-list-empty">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+async function createTask(title, owner, prd = null) {
+  const taskPrd = normalizePrd(prd || {});
+  if (!hasText(taskPrd.productName)) taskPrd.productName = title;
+  if (!hasText(taskPrd.owner)) taskPrd.owner = owner;
+  const payload = await apiRequest("/api/tasks", {
+    method: "POST",
+    body: JSON.stringify({
+      title,
+      owner,
+      status: "draft",
+      prd: taskPrd,
+    }),
+  });
+  upsertTaskSummary(payload.task);
+  await activateTask(payload.task);
+  return payload.task;
+}
+
+async function activateTask(taskOrId) {
+  if (activeTask && activeTask.id !== taskOrId && activeTask.id !== taskOrId?.id) {
+    await syncActiveTask(activeTask.id);
+  }
+  const task =
+    typeof taskOrId === "string"
+      ? (await apiRequest(`/api/tasks/${taskOrId}`)).task
+      : taskOrId;
+  activeTask = task;
+  state = normalizePrd(task.prd);
+  localStorage.setItem(ACTIVE_TASK_KEY, task.id);
+  localStorage.setItem(`${TASK_CACHE_PREFIX}${task.id}`, JSON.stringify(state));
+  elements.mode.value = state.mode;
+  upsertTaskSummary(task);
+  renderStep();
+  showToast(`已打开任务：${task.title}`);
+}
+
+async function updateTaskStatus(taskId, status) {
+  const task = tasks.find((item) => item.id === taskId);
+  if (!task) return;
+  const payload = await apiRequest(`/api/tasks/${taskId}`, {
+    method: "PUT",
+    body: JSON.stringify({ status }),
+  });
+  upsertTaskSummary(payload.task);
+  if (activeTask?.id === taskId) {
+    activeTask.status = payload.task.status;
+    activeTask.updated_at = payload.task.updated_at;
+    updateTaskUi();
+  }
+  showToast(`任务状态已更新为${taskStatuses[status]}`);
+}
+
+async function archiveTask(taskId) {
+  const task = tasks.find((item) => item.id === taskId);
+  if (!task || !window.confirm(`确定归档任务“${task.title}”吗？历史版本仍会保留。`)) {
+    return;
+  }
+  await apiRequest(`/api/tasks/${taskId}`, { method: "DELETE" });
+  tasks = tasks.filter((item) => item.id !== taskId);
+  if (activeTask?.id === taskId) {
+    activeTask = null;
+    state = structuredClone(defaults);
+    localStorage.removeItem(ACTIVE_TASK_KEY);
+    renderStep();
+  }
+  renderTaskList();
+  showToast("任务已归档");
+}
+
+async function bootstrapTasks() {
+  updateTaskUi();
+  if (!aiSettings.endpoint || !aiSettings.accessToken) return;
+  try {
+    await loadTasks();
+    const activeTaskId = localStorage.getItem(ACTIVE_TASK_KEY);
+    const candidate = tasks.find((item) => item.id === activeTaskId) || tasks[0];
+    if (candidate) await activateTask(candidate.id);
+    else await openTaskCenter();
+  } catch (error) {
+    console.error("Task bootstrap failed", error);
+    showToast(`任务服务未就绪：${error.message}`);
+  }
+}
+
+async function openHistory() {
+  if (!activeTask) {
+    showToast("请先选择任务");
+    return;
+  }
+  await syncActiveTask(activeTask.id);
+  elements.historyDialog.showModal();
+  await loadRevisions();
+}
+
+async function loadRevisions() {
+  if (!activeTask) return;
+  elements.revisionList.innerHTML =
+    '<div class="revision-list-empty">正在加载版本历史…</div>';
+  try {
+    const payload = await apiRequest(`/api/tasks/${activeTask.id}/revisions`);
+    renderRevisions(payload.revisions || []);
+  } catch (error) {
+    elements.revisionList.innerHTML = `<div class="revision-list-empty">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function renderRevisions(revisions) {
+  if (!revisions.length) {
+    elements.revisionList.innerHTML =
+      '<div class="revision-list-empty">还没有版本快照。</div>';
+    return;
+  }
+  elements.revisionList.innerHTML = revisions
+    .map(
+      (revision) => `
+        <article class="revision-item">
+          <span class="revision-number">v${revision.revision}</span>
+          <div class="revision-copy">
+            <strong>${escapeHtml(revision.change_note || "未填写说明")}</strong>
+            <small>${formatDate(revision.created_at)}</small>
+          </div>
+          <div class="task-item-actions">
+            <button class="button button-ghost" data-preview-revision="${revision.revision}" type="button">查看</button>
+            <button class="button button-ghost" data-restore-revision="${revision.revision}" type="button">恢复</button>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+async function createRevision(note) {
+  if (!activeTask) return;
+  await syncActiveTask(activeTask.id);
+  const payload = await apiRequest(`/api/tasks/${activeTask.id}/revisions`, {
+    method: "POST",
+    body: JSON.stringify({ note }),
+  });
+  activeTask.current_revision = payload.revision.revision;
+  upsertTaskSummary(activeTask);
+  elements.revisionNote.value = "";
+  await loadRevisions();
+  updateTaskUi();
+  showToast(`版本 v${payload.revision.revision} 已保存`);
+}
+
+async function fetchRevision(revision) {
+  return (
+    await apiRequest(`/api/tasks/${activeTask.id}/revisions/${revision}`)
+  ).revision;
+}
+
+async function previewRevision(revisionNumber) {
+  const revision = await fetchRevision(revisionNumber);
+  const currentState = state;
+  state = normalizePrd(revision.prd);
+  elements.markdownPreview.textContent = generateMarkdown();
+  state = currentState;
+  elements.previewDialog.showModal();
+}
+
+async function restoreRevision(revisionNumber) {
+  if (
+    !activeTask ||
+    !window.confirm(
+      `确定恢复版本 v${revisionNumber} 吗？当前草稿会被替换，但会保留为历史记录。`,
+    )
+  ) {
+    return;
+  }
+  const payload = await apiRequest(
+    `/api/tasks/${activeTask.id}/revisions/${revisionNumber}/restore`,
+    { method: "POST" },
+  );
+  await activateTask(payload.task);
+  elements.historyDialog.close();
+  showToast(`已恢复版本 v${revisionNumber}，并创建新的恢复版本`);
+}
+
 function updateAiStatus() {
   const configured = Boolean(aiSettings.endpoint && aiSettings.accessToken);
   elements.aiStatus.textContent = configured ? "已配置" : "未配置";
@@ -916,6 +1312,10 @@ elements.mode.addEventListener("change", () => {
 
 document.querySelector("#previewButton").addEventListener("click", openPreview);
 document.querySelector("#exportButton").addEventListener("click", exportMarkdown);
+document.querySelector("#taskCenterButton").addEventListener("click", openTaskCenter);
+elements.taskContext.addEventListener("click", openTaskCenter);
+document.querySelector("#historyButton").addEventListener("click", openHistory);
+document.querySelector("#saveVersionButton").addEventListener("click", openHistory);
 document
   .querySelector("#aiAssistantButton")
   .addEventListener("click", () => openAiAssistant());
@@ -942,6 +1342,18 @@ elements.aiDialog.addEventListener("click", (event) => {
 elements.aiSettingsDialog.addEventListener("click", (event) => {
   if (event.target === elements.aiSettingsDialog) elements.aiSettingsDialog.close();
 });
+document
+  .querySelector("#closeTaskButton")
+  .addEventListener("click", () => elements.taskDialog.close());
+document
+  .querySelector("#closeHistoryButton")
+  .addEventListener("click", () => elements.historyDialog.close());
+elements.taskDialog.addEventListener("click", (event) => {
+  if (event.target === elements.taskDialog) elements.taskDialog.close();
+});
+elements.historyDialog.addEventListener("click", (event) => {
+  if (event.target === elements.historyDialog) elements.historyDialog.close();
+});
 elements.runAiButton.addEventListener("click", runAiAssistant);
 elements.appendAiButton.addEventListener("click", () => applyAiResult("append"));
 elements.replaceAiButton.addEventListener("click", () => applyAiResult("replace"));
@@ -955,13 +1367,102 @@ document.querySelector("#aiSettingsForm").addEventListener("submit", (event) => 
   updateAiStatus();
   elements.aiSettingsDialog.close();
   showToast("AI 服务配置已保存");
+  bootstrapTasks();
+});
+
+document.querySelector("#newTaskForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await createTask(
+      elements.newTaskTitle.value.trim(),
+      elements.newTaskOwner.value.trim(),
+    );
+    elements.newTaskTitle.value = "";
+    elements.newTaskOwner.value = "";
+    elements.taskDialog.close();
+  } catch (error) {
+    showToast(`创建任务失败：${error.message}`);
+  }
+});
+
+document.querySelector("#migrateDraftButton").addEventListener("click", async () => {
+  try {
+    const legacyState = structuredClone(state);
+    const title = state.productName || "迁移的 PRD 草稿";
+    await createTask(title, state.owner || "", legacyState);
+    localStorage.removeItem(STORAGE_KEY);
+    elements.taskDialog.close();
+    showToast("旧版草稿已迁移为任务");
+  } catch (error) {
+    showToast(`迁移失败：${error.message}`);
+  }
+});
+
+document.querySelector("#refreshTasksButton").addEventListener("click", async () => {
+  try {
+    await loadTasks();
+    showToast("任务列表已刷新");
+  } catch (error) {
+    showToast(`刷新失败：${error.message}`);
+  }
+});
+
+elements.taskList.addEventListener("click", async (event) => {
+  const openButton = event.target.closest("[data-open-task]");
+  const archiveButton = event.target.closest("[data-archive-task]");
+  try {
+    if (openButton) {
+      await activateTask(openButton.dataset.openTask);
+      elements.taskDialog.close();
+    }
+    if (archiveButton) await archiveTask(archiveButton.dataset.archiveTask);
+  } catch (error) {
+    showToast(`任务操作失败：${error.message}`);
+  }
+});
+
+elements.taskList.addEventListener("change", async (event) => {
+  const select = event.target.closest("[data-task-status]");
+  if (!select) return;
+  try {
+    await updateTaskStatus(select.dataset.taskStatus, select.value);
+  } catch (error) {
+    showToast(`状态更新失败：${error.message}`);
+    await loadTasks();
+  }
+});
+
+document.querySelector("#saveRevisionForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await createRevision(elements.revisionNote.value.trim());
+  } catch (error) {
+    showToast(`版本保存失败：${error.message}`);
+  }
+});
+
+elements.revisionList.addEventListener("click", async (event) => {
+  const previewButton = event.target.closest("[data-preview-revision]");
+  const restoreButton = event.target.closest("[data-restore-revision]");
+  try {
+    if (previewButton) {
+      await previewRevision(previewButton.dataset.previewRevision);
+    }
+    if (restoreButton) {
+      await restoreRevision(restoreButton.dataset.restoreRevision);
+    }
+  } catch (error) {
+    showToast(`版本操作失败：${error.message}`);
+  }
 });
 
 document.querySelector("#resetButton").addEventListener("click", () => {
-  if (!window.confirm("确定清空所有已保存的 PRD 内容吗？此操作无法撤销。")) return;
+  const target = activeTask ? `任务“${activeTask.title}”的当前草稿` : "当前本地草稿";
+  if (!window.confirm(`确定清空${target}吗？已保存的历史版本不会删除。`)) return;
   state = structuredClone(defaults);
-  localStorage.removeItem(STORAGE_KEY);
+  if (!activeTask) localStorage.removeItem(STORAGE_KEY);
   elements.mode.value = state.mode;
+  saveState();
   renderStep();
   showToast("工作台已清空");
 });
@@ -980,3 +1481,4 @@ document.addEventListener("keydown", (event) => {
 
 updateAiStatus();
 renderStep();
+bootstrapTasks();

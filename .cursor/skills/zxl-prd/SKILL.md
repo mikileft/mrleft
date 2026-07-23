@@ -54,6 +54,12 @@ suggestions are candidates, not facts or decisions. Require explicit user
 acceptance before inserting them, retain `Assumption` and `TBD` labels, and
 never infer approval from the user accepting improved wording.
 
+The workbench organizes all PRD activity by task. Treat each task as an
+independent product decision context: do not mix evidence, requirements,
+metrics, or decisions across tasks. Draft autosaves are mutable working state;
+named versions are immutable checkpoints. Restoring a version must create a new
+checkpoint so later history remains traceable.
+
 ## Phase 1: Establish the document contract
 
 Before drafting, determine:

@@ -1,3 +1,5 @@
+import { handleTaskRequest } from "./tasks.js";
+
 const ACTIONS = {
   questions:
     "找出当前内容中影响产品决策的缺口，提出 5–8 个按优先级排序的具体问题。不要替用户作决定。",
@@ -32,13 +34,15 @@ export default {
     }
 
     const url = new URL(request.url);
-    if (url.pathname !== "/api/assist" || request.method !== "POST") {
+    const isAssist = url.pathname === "/api/assist" && request.method === "POST";
+    const isTaskRoute = url.pathname === "/api/tasks" || url.pathname.startsWith("/api/tasks/");
+    if (!isAssist && !isTaskRoute) {
       return json({ error: "Not found" }, 404, cors);
     }
 
     if (!cors) return json({ error: "Origin not allowed" }, 403);
-    if (!env.WORKBENCH_ACCESS_TOKEN || !env.AI_API_KEY || !env.AI_MODEL) {
-      return json({ error: "AI gateway is not configured" }, 503, cors);
+    if (!env.WORKBENCH_ACCESS_TOKEN) {
+      return json({ error: "Workbench gateway is not configured" }, 503, cors);
     }
 
     const authorization = request.headers.get("Authorization") || "";
@@ -47,6 +51,18 @@ export default {
       : "";
     if (!(await tokensMatch(suppliedToken, env.WORKBENCH_ACCESS_TOKEN))) {
       return json({ error: "Invalid access token" }, 401, cors);
+    }
+
+    if (isTaskRoute) {
+      const contentLength = Number(request.headers.get("Content-Length") || 0);
+      if (contentLength > 128_000) {
+        return json({ error: "Request is too large" }, 413, cors);
+      }
+      return handleTaskRequest(request, env, url, cors);
+    }
+
+    if (!env.AI_API_KEY || !env.AI_MODEL) {
+      return json({ error: "AI gateway is not configured" }, 503, cors);
     }
 
     const contentLength = Number(request.headers.get("Content-Length") || 0);
@@ -132,7 +148,7 @@ function corsHeaders(origin, allowedOrigins = "") {
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };

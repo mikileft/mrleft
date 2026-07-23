@@ -1,8 +1,8 @@
 {
   "name": "zxl-prd",
   "displayName": "ZXL PRD",
-  "description": "Create, refine, and review decision-ready product requirements documents with secure AI co-authoring, a guided visual workbench, measurable requirements, and validation.",
-  "version": "1.2.0",
+  "description": "Manage task-scoped, versioned product requirements with secure AI co-authoring, a guided visual workbench, measurable requirements, and validation.",
+  "version": "1.3.0",
   "author": {
     "name": "mikileft"
   },

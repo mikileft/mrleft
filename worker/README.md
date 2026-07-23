@@ -4,6 +4,10 @@ This Cloudflare Worker keeps the model API key out of the public GitHub Pages
 application. It accepts requests only from configured origins and requires a
 separate workbench access token.
 
+It also exposes the authenticated task and revision API backed by Cloudflare
+D1. The deployment workflow creates or reuses the `zxl-prd-workbench` database
+and applies migrations automatically.
+
 Production endpoint:
 
 ```text
@@ -51,6 +55,14 @@ Worker whenever `worker/` changes. Configure these repository Actions secrets:
 
 The last two values are uploaded to Cloudflare as encrypted Worker secrets and
 are not written to `wrangler.toml`.
+
+The Cloudflare API token needs:
+
+- Account → Workers Scripts → Edit
+- Account → D1 → Edit
+- Account → Account Settings → Read
+- User → Memberships → Read
+- User → User Details → Read
 
 ### Local deployment
 

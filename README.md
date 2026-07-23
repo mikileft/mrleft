@@ -39,6 +39,19 @@ evidence labeling, requirement and metric editing, readiness tracking, local
 autosave, structural checks, live Markdown preview, and Markdown export. Drafts
 remain in the browser's local storage; no content is sent to a server.
 
+### Task-based workflow and history
+
+Every PRD belongs to a task. The task center supports:
+
+- creating, switching, progressing, completing, and archiving tasks;
+- task-scoped cloud autosave with a local browser cache;
+- migrating an existing pre-task local draft;
+- immutable version snapshots with change notes;
+- previewing and restoring historical versions without deleting later history.
+
+Task drafts and revisions are stored in Cloudflare D1 through the same
+single-user access token used by the AI gateway.
+
 ### AI co-authoring
 
 Long-form fields include an **AI 共创** action with four tasks:
