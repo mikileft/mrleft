@@ -3,206 +3,13 @@ const AI_SETTINGS_KEY = "zxl-prd-ai-settings-v1";
 const ACTIVE_TASK_KEY = "zxl-prd-active-task-v1";
 const TASK_CACHE_PREFIX = "zxl-prd-task-cache-v1:";
 
-const taskStatuses = {
-  draft: "草稿",
-  in_progress: "进行中",
-  review: "评审中",
-  completed: "已完成",
-  archived: "已归档",
-};
+const workflow = window.ZXL_PRD_CONFIG;
+if (!workflow) throw new Error("ZXL PRD workflow configuration is missing");
 
-const steps = [
-  {
-    short: "项目概况",
-    subtitle: "文档契约",
-    phase: "PHASE 1 · 建立文档契约",
-    title: "先对齐问题，再讨论方案",
-    description:
-      "先确定这份 PRD 要帮助谁做什么决策，并记录目标用户、期望结果与关键约束。",
-    tip: "先描述目标用户正在经历的问题，不要急于写功能清单。",
-  },
-  {
-    short: "证据地图",
-    subtitle: "事实与假设",
-    phase: "PHASE 2 · 构建证据地图",
-    title: "让每个关键判断都有出处",
-    description:
-      "把输入区分为事实、决策、假设与待定项，让后续范围和需求建立在可追溯证据上。",
-    tip: "无法证明的内容不是事实；将它标为假设，并写明验证方法。",
-  },
-  {
-    short: "产品框架",
-    subtitle: "目标与范围",
-    phase: "PHASE 3 · 先框定，再细化",
-    title: "明确结果、边界与关键旅程",
-    description:
-      "对齐为什么现在做、希望改变什么，以及本次明确包含、排除和延期的内容。",
-    tip: "好范围不仅说明要做什么，也说明不做什么以及推迟什么。",
-  },
-  {
-    short: "需求共创",
-    subtitle: "行为与验收",
-    phase: "PHASE 4 · 共创 PRD",
-    title: "把需求写成可验证的行为",
-    description:
-      "使用稳定编号、合理优先级和可观察验收标准，把方向转化为可交付需求。",
-    tip: "每条需求都应包含触发条件、预期结果，以及失败或恢复行为。",
-  },
-  {
-    short: "度量与风险",
-    subtitle: "成功定义",
-    phase: "PHASE 4 · 度量与交付",
-    title: "定义怎样才算真正成功",
-    description:
-      "定义结果指标、护栏、风险、依赖和回滚标准，让上线后的判断有明确依据。",
-    tip: "指标需要基线或测量计划、目标、护栏、周期、来源和负责人。",
-  },
-  {
-    short: "质量检查",
-    subtitle: "结构与判断",
-    phase: "PHASE 5–6 · 校验与读者测试",
-    title: "在交付前暴露歧义与缺口",
-    description:
-      "结合结构校验与人工判断，发现矛盾、无依据主张、遗漏边界和隐藏决策。",
-    tip: "自动检查只能发现结构信号，不能证明产品推理正确。",
-  },
-  {
-    short: "交付",
-    subtitle: "摘要与决策",
-    phase: "PHASE 7 · 交付",
-    title: "形成可供决策的完整文档",
-    description:
-      "用执行摘要、开放决策和明确下一步收束全文，形成可审批、可执行的交付物。",
-    tip: "交付前请核验事实、链接、指标、合规声明和利益相关者批准。",
-  },
-];
-
-const stageQuests = [
-  {
-    icon: "🧭",
-    title: "问题侦探",
-    question: "哪一种问题陈述更适合写进 PRD？",
-    options: [
-      "我们需要开发一个更智能的推荐系统",
-      "新用户因缺少引导无法完成首次配置，导致激活率下降",
-      "页面应该更现代、更直观",
-    ],
-    answer: 1,
-    hint: "好的问题陈述包含用户、阻碍和可观察影响，而不是预设方案。",
-  },
-  {
-    icon: "🔎",
-    title: "证据分拣员",
-    question: "一个合理但尚未验证的用户判断应该标为什么？",
-    options: ["Fact", "Decision", "Assumption"],
-    answer: 2,
-    hint: "没有来源或验证结果时，应保留为 Assumption 并写明验证方式。",
-  },
-  {
-    icon: "🗺️",
-    title: "范围守门员",
-    question: "哪种写法最能降低范围误解？",
-    options: [
-      "尽量满足所有相关需求",
-      "只写本期要做的功能",
-      "同时列明范围内、范围外与延期项",
-    ],
-    answer: 2,
-    hint: "清晰边界需要同时说明做什么、不做什么和推迟什么。",
-  },
-  {
-    icon: "🧩",
-    title: "验收拼图",
-    question: "哪条验收标准最容易通过或失败判定？",
-    options: [
-      "页面加载要足够快",
-      "用户点击保存后 2 秒内看到成功状态",
-      "交互体验应该自然流畅",
-    ],
-    answer: 1,
-    hint: "可测试标准应包含触发、可观察结果和明确阈值。",
-  },
-  {
-    icon: "🎯",
-    title: "指标射手",
-    question: "一个完整的核心指标至少还需要什么？",
-    options: [
-      "漂亮的图表",
-      "基线、目标、周期、来源和负责人",
-      "更多形容词",
-    ],
-    answer: 1,
-    hint: "没有口径、时间窗和责任人的指标无法支持继续或停止决策。",
-  },
-  {
-    icon: "🛡️",
-    title: "质量鉴别师",
-    question: "结构校验脚本能够证明什么？",
-    options: [
-      "证明产品方向一定正确",
-      "证明所有用户都认可方案",
-      "发现缺失章节等结构信号，但不能替代产品判断",
-    ],
-    answer: 2,
-    hint: "自动检查擅长结构信号，产品推理仍需证据和独立评审。",
-  },
-  {
-    icon: "🏁",
-    title: "交付冲刺",
-    question: "执行摘要最适合在什么时候完成？",
-    options: ["正文完成并一致性检查后", "访谈开始前", "功能列表确定前"],
-    answer: 0,
-    hint: "执行摘要应反映最终范围、指标与待决事项，因此最后编写。",
-  },
-];
-
-const checklistItems = [
-  "请求的决策及其审批人明确",
-  "问题、紧迫性、目标用户与期望结果清楚",
-  "范围、非目标与延期项可避免误解",
-  "关键主张有来源或明确标为假设",
-  "事实、决策、假设与 TBD 可区分",
-  "功能需求拥有稳定 ID 与合理优先级",
-  "验收标准二元、可观察且不绑定实现",
-  "主要指标包含定义、基线、目标、周期、来源与负责人",
-  "风险包含缓解措施、触发信号与负责人",
-  "独立读者能复述问题、用户、范围、方向和成功标准",
-];
-
-const defaults = {
-  currentStep: 0,
-  productName: "",
-  owner: "",
-  approver: "",
-  targetRelease: "",
-  problem: "",
-  audience: "",
-  targetUsers: "",
-  currentWorkaround: "",
-  desiredOutcome: "",
-  constraints: "",
-  decisionNeeded: "",
-  whyNow: "",
-  currentJourney: "",
-  goals: "",
-  nonGoals: "",
-  inScope: "",
-  outOfScope: "",
-  deferred: "",
-  futureJourney: "",
-  nfr: "",
-  dependencies: "",
-  rollout: "",
-  executiveSummary: "",
-  openDecisions: "",
-  nextAction: "",
-  evidence: [],
-  requirements: [],
-  metrics: [],
-  risks: [],
-  checks: Array(checklistItems.length).fill(false),
-  questWins: {},
-};
+const taskStatuses = workflow.taskStatuses;
+const steps = workflow.stages;
+const checklistItems = workflow.checklist.items;
+const defaults = workflow.stateDefaults;
 
 let state = loadState();
 let aiSettings = loadAiSettings();
@@ -222,6 +29,7 @@ const elements = {
   stageDescription: document.querySelector("#stageDescription"),
   stepCounter: document.querySelector("#stepCounter"),
   previousButton: document.querySelector("#previousButton"),
+  markTbdButton: document.querySelector("#markTbdButton"),
   nextButton: document.querySelector("#nextButton"),
   activeTaskTitle: document.querySelector("#activeTaskTitle"),
   activeTaskStatus: document.querySelector("#activeTaskStatus"),
@@ -230,10 +38,9 @@ const elements = {
   readinessScore: document.querySelector("#readinessScore"),
   readinessBar: document.querySelector("#readinessBar"),
   readinessHint: document.querySelector("#readinessHint"),
-  journeyXp: document.querySelector("#journeyXp"),
+  journeyProgressLabel: document.querySelector("#journeyProgressLabel"),
   journeyFill: document.querySelector("#journeyFill"),
   journeyCharacter: document.querySelector("#journeyCharacter"),
-  stageQuest: document.querySelector("#stageQuest"),
   coachTip: document.querySelector("#coachTip"),
   previewDialog: document.querySelector("#previewDialog"),
   markdownPreview: document.querySelector("#markdownPreview"),
@@ -269,11 +76,7 @@ function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!saved) return structuredClone(defaults);
-    return {
-      ...structuredClone(defaults),
-      ...saved,
-      checks: checklistItems.map((_, index) => Boolean(saved.checks?.[index])),
-    };
+    return normalizePrd(saved);
   } catch {
     return structuredClone(defaults);
   }
@@ -325,24 +128,30 @@ function field(key, label, options = {}) {
   `;
 }
 
-function intro(title, copy) {
-  return `<div class="section-intro"><span>本阶段产出</span><h2>${title}</h2></div>`;
-}
-
 function renderStep() {
   const step = steps[state.currentStep];
+  const questionIndex = currentQuestionIndex();
+  const question = step.questions[questionIndex];
   elements.phaseLabel.textContent = step.phase;
   elements.stepTitle.textContent = step.title;
   elements.stageDescription.textContent = step.description;
   elements.coachTip.textContent = step.tip;
-  elements.stepCounter.textContent = `步骤 ${state.currentStep + 1} / ${steps.length}`;
-  elements.previousButton.disabled = state.currentStep === 0;
-  elements.nextButton.textContent =
-    state.currentStep === steps.length - 1 ? "导出文档 ↓" : "下一步 →";
-  elements.stepContent.innerHTML = renderers[state.currentStep]();
+  elements.stepCounter.textContent =
+    `阶段 ${state.currentStep + 1}/${steps.length} · 问题 ${questionIndex + 1}/${step.questions.length}`;
+  elements.previousButton.disabled = state.currentStep === 0 && questionIndex === 0;
+  elements.markTbdButton.hidden =
+    !workflow.navigation.allowTbd || question.kind !== "field";
+  const isFinal =
+    state.currentStep === steps.length - 1 &&
+    questionIndex === step.questions.length - 1;
+  elements.nextButton.textContent = isFinal ? "导出文档 ↓" : "下一题 →";
+  elements.stepContent.innerHTML = renderLinearQuestion(
+    step,
+    question,
+    questionIndex,
+  );
   renderNavigation();
   bindStepEvents();
-  renderStageQuest();
   updateDashboard();
   updateTaskUi();
 }
@@ -362,185 +171,170 @@ function renderNavigation() {
     .join("");
 }
 
-function renderStageQuest() {
-  const quest = stageQuests[state.currentStep];
-  const won = Boolean(state.questWins?.[state.currentStep]);
-  elements.stageQuest.innerHTML = `
-    <div class="quest-heading">
-      <span class="quest-icon">${quest.icon}</span>
-      <div>
-        <span>阶段小游戏</span>
-        <strong>${quest.title}</strong>
+function currentQuestionIndex(stageIndex = state.currentStep) {
+  const questions = steps[stageIndex].questions;
+  const stored = Number(state.stagePositions?.[steps[stageIndex].id] || 0);
+  return Math.max(0, Math.min(questions.length - 1, stored));
+}
+
+function setCurrentQuestionIndex(index) {
+  const stage = steps[state.currentStep];
+  state.stagePositions = {
+    ...(state.stagePositions || {}),
+    [stage.id]: Math.max(0, Math.min(stage.questions.length - 1, index)),
+  };
+}
+
+function renderLinearQuestion(stage, question, questionIndex) {
+  return `
+    <div class="linear-question">
+      <div class="question-heading">
+        <div>
+          <span>问题 ${questionIndex + 1} / ${stage.questions.length}</span>
+          <h2>${escapeHtml(question.title)}</h2>
+          ${question.help ? `<p>${escapeHtml(question.help)}</p>` : ""}
+        </div>
+        <b>${
+          question.kind === "field"
+            ? question.required
+              ? "必填"
+              : "可暂存 TBD"
+            : question.kind === "summary"
+              ? "阶段确认"
+              : question.kind === "actions"
+                ? "交付"
+                : "持续补充"
+        }</b>
       </div>
-      <b>${won ? "已通关 +10" : "+10 探索值"}</b>
+      <div class="question-body">
+        ${renderQuestionBody(stage, question)}
+      </div>
     </div>
-    <p class="quest-question">${quest.question}</p>
-    <div class="quest-options">
-      ${quest.options
+  `;
+}
+
+function renderQuestionBody(stage, question) {
+  if (question.kind === "field") {
+    return `<div class="form-grid single-question">${field(question.key, question.label, {
+      type: question.inputType === "textarea" ? "textarea" : "text",
+      placeholder: question.placeholder || "",
+      required: Boolean(question.required),
+      span: true,
+      ai: Boolean(question.ai),
+    })}</div>`;
+  }
+  if (question.kind === "collection") return renderCollectionQuestion(question);
+  if (question.kind === "quality") return renderQualityQuestion();
+  if (question.kind === "summary") return renderStageSummary(stage);
+  if (question.kind === "actions") return renderDeliveryActions();
+  return '<div class="callout"><strong>配置错误</strong><span>不支持的问题类型。</span></div>';
+}
+
+function renderCollectionQuestion(question) {
+  const collection = question.collection;
+  const renderersByCollection = {
+    evidence: renderEvidenceRow,
+    requirements: renderRequirementRow,
+    metrics: renderMetricRow,
+    risks: renderRiskRow,
+  };
+  const labels = {
+    evidence: "添加一条证据或判断",
+    requirements: "添加功能需求",
+    metrics: "添加成功指标",
+    risks: "添加风险",
+  };
+  const renderer = renderersByCollection[collection];
+  return `
+    <div class="collection linear-collection" id="${collection}Collection">
+      ${state[collection].map(renderer).join("")}
+      <button class="add-row" data-add="${collection}" type="button">＋ ${labels[collection]}</button>
+    </div>
+  `;
+}
+
+function renderQualityQuestion() {
+  const validation = validateState();
+  const checked = checklistItems.filter((item) => state.checks[item.id]).length;
+  return `
+    <div class="validation-results">
+      <div class="validation-stat good"><strong>${validation.passed}</strong><span>已通过</span></div>
+      <div class="validation-stat warn"><strong>${validation.warnings.length}</strong><span>待补充</span></div>
+      <div class="validation-stat neutral"><strong>${checked}/${checklistItems.length}</strong><span>人工检查</span></div>
+    </div>
+    ${
+      validation.warnings.length
+        ? `<div class="callout"><strong>结构提示</strong><span>${validation.warnings.map(escapeHtml).join("；")}</span></div>`
+        : '<div class="callout"><strong>结构通过</strong><span>关键结构信号齐全，请继续完成人工判断和独立读者测试。</span></div>'
+    }
+    <div class="checklist">
+      ${checklistItems
         .map(
-          (option, index) => `
-            <button class="quest-option ${won && index === quest.answer ? "correct" : ""}" data-quest-option="${index}" type="button" ${won ? "disabled" : ""}>
-              <span>${String.fromCharCode(65 + index)}</span>${escapeHtml(option)}
-            </button>
+          (item) => `
+            <label class="check-item">
+              <input type="checkbox" data-check="${item.id}" ${state.checks[item.id] ? "checked" : ""} />
+              <span>${escapeHtml(item.text)}</span>
+            </label>
           `,
         )
         .join("")}
     </div>
-    <p class="quest-feedback ${won ? "success" : ""}" id="questFeedback">
-      ${won ? `通关成功！${quest.hint}` : "选择你认为最专业的答案。答错可以继续挑战。"}
-    </p>
   `;
-  elements.stageQuest.querySelectorAll("[data-quest-option]").forEach((button) => {
-    button.addEventListener("click", () => {
-      answerStageQuest(Number(button.dataset.questOption), button);
-    });
-  });
 }
 
-function answerStageQuest(answer, button) {
-  const quest = stageQuests[state.currentStep];
-  const feedback = document.querySelector("#questFeedback");
-  if (answer !== quest.answer) {
-    button.classList.remove("wrong");
-    void button.offsetWidth;
-    button.classList.add("wrong");
-    feedback.textContent = `再想一步：${quest.hint}`;
-    return;
-  }
-  state.questWins = { ...(state.questWins || {}), [state.currentStep]: true };
-  saveState();
-  renderStageQuest();
-  updateDashboard();
-  emitCelebration();
-  showToast(`阶段挑战通关，获得 10 探索值！`);
+function renderStageSummary(stage) {
+  const questions = stage.questions.filter(
+    (question) => !["summary", "actions"].includes(question.kind),
+  );
+  return `
+    <div class="stage-summary-list">
+      ${questions
+        .map(
+          (question) => `
+            <div class="stage-summary-item ${questionIsComplete(question) ? "complete" : ""}">
+              <span>${questionIsComplete(question) ? "✓" : "○"}</span>
+              <div><strong>${escapeHtml(question.title)}</strong><small>${questionIsComplete(question) ? "已完成" : question.required ? "仍需补充" : "可保留 TBD"}</small></div>
+            </div>
+          `,
+        )
+        .join("")}
+    </div>
+    <div class="callout"><strong>阶段确认</strong><span>返回修改遗漏内容，或点击“下一题”进入下一阶段。</span></div>
+  `;
 }
 
-function emitCelebration() {
-  const icons = ["✦", "★", "●", "◆", "🎉"];
-  const layer = document.querySelector("#celebrationLayer");
-  layer.innerHTML = Array.from(
-    { length: 24 },
-    (_, index) =>
-      `<span style="--x:${8 + Math.random() * 84}vw;--delay:${Math.random() * 0.35}s;--spin:${index % 2 ? 1 : -1}">${icons[index % icons.length]}</span>`,
-  ).join("");
-  setTimeout(() => {
-    layer.innerHTML = "";
-  }, 1800);
-}
-
-const renderers = [
-  () => `
-    ${intro("建立文档契约", "先确定这份 PRD 要帮助谁做什么决策，并记录用户、结果与约束。带星号字段会计入当前阶段完成度。")}
-    <div class="form-grid">
-      ${field("productName", "产品或功能名称", { placeholder: "例如：PRD 可视化共创工作台", required: true })}
-      ${field("owner", "文档负责人", { placeholder: "姓名或角色", required: true })}
-      ${field("approver", "决策审批人", { placeholder: "谁对关键决策负责？" })}
-      ${field("targetRelease", "目标发布", { placeholder: "日期、季度或里程碑" })}
-      ${field("problem", "核心问题", { type: "textarea", placeholder: "谁因为什么原因难以完成什么任务，并造成了什么影响？", required: true, span: true })}
-      ${field("audience", "PRD 读者与决策", { type: "textarea", placeholder: "主要读者是谁？他们需要批准、取舍或执行什么？", required: true })}
-      ${field("targetUsers", "目标用户", { type: "textarea", placeholder: "用户细分、使用场景与关键需求", required: true })}
-      ${field("currentWorkaround", "当前替代方案", { type: "textarea", placeholder: "用户现在怎么处理？痛点和失败模式是什么？" })}
-      ${field("desiredOutcome", "期望结果", { type: "textarea", placeholder: "描述改变后的用户或业务状态，不要预设具体实现。", required: true })}
-      ${field("constraints", "主要约束", { type: "textarea", placeholder: "时间、预算、技术、政策、隐私、无障碍或运营约束", span: true })}
-    </div>
-  `,
-  () => `
-    ${intro("证据地图", "把关键输入区分为事实、明确决策、待验证假设与 TBD。对事实和外部主张附上来源。")}
-    <div class="callout"><strong>标注原则</strong><span>事实需要来源；决策需要责任人；假设需要验证计划；TBD 需要下一步或负责人。</span></div>
-    <div class="collection" id="evidenceCollection">
-      ${state.evidence.map(renderEvidenceRow).join("")}
-      <button class="add-row" data-add="evidence" type="button">＋ 添加一条证据或判断</button>
-    </div>
-  `,
-  () => `
-    ${intro("产品框架", "把问题转化为紧凑、可评审的产品框架。方案细节尚未确定时，请保留为假设。")}
-    <div class="form-grid">
-      ${field("whyNow", "为什么是现在", { type: "textarea", placeholder: "触发因素、紧迫性或不行动的机会成本", required: true })}
-      ${field("decisionNeeded", "需要做出的决策", { type: "textarea", placeholder: "读者应批准或解决什么？", required: true })}
-      ${field("currentJourney", "当前用户旅程", { type: "textarea", placeholder: "步骤、痛点、替代方法与失败模式", span: true })}
-      ${field("goals", "目标", { type: "textarea", placeholder: "列出 3–5 个结果导向目标，每行一项", required: true })}
-      ${field("nonGoals", "非目标", { type: "textarea", placeholder: "本次明确不解决的内容", required: true })}
-      ${field("inScope", "范围内", { type: "textarea", placeholder: "每行一个范围项", required: true })}
-      ${field("outOfScope", "范围外", { type: "textarea", placeholder: "每行一个排除项", required: true })}
-      ${field("deferred", "延期项", { type: "textarea", placeholder: "有价值但推迟处理的内容" })}
-      ${field("futureJourney", "未来用户旅程", { type: "textarea", placeholder: "覆盖成功、空、加载、错误、权限、取消与恢复状态", span: true })}
-    </div>
-  `,
-  () => `
-    ${intro("需求共创", "使用稳定 ID 和 Must / Should / Could 优先级。需求描述行为，验收标准描述可观察的通过条件。")}
-    <div class="collection" id="requirementsCollection">
-      ${state.requirements.map(renderRequirementRow).join("")}
-      <button class="add-row" data-add="requirements" type="button">＋ 添加功能需求</button>
-    </div>
-    <div class="form-grid" style="margin-top: 28px">
-      ${field("nfr", "非功能需求", { type: "textarea", placeholder: "按“类别｜可量化阈值｜验证方式”逐行填写", span: true, hint: "考虑性能、可用性、安全、隐私、无障碍、规模、可观测性与支持性。" })}
-    </div>
-  `,
-  () => `
-    ${intro("度量、风险与发布", "先定义结果指标和护栏，再记录依赖、风险与回滚条件。不要把未经确认的数字写成事实。")}
-    <h3>成功指标</h3>
-    <div class="collection" id="metricsCollection">
-      ${state.metrics.map(renderMetricRow).join("")}
-      <button class="add-row" data-add="metrics" type="button">＋ 添加成功指标</button>
-    </div>
-    <h3 style="margin-top: 28px">风险</h3>
-    <div class="collection" id="risksCollection">
-      ${state.risks.map(renderRiskRow).join("")}
-      <button class="add-row" data-add="risks" type="button">＋ 添加风险</button>
-    </div>
-    <div class="form-grid" style="margin-top: 28px">
-      ${field("dependencies", "依赖与备选方案", { type: "textarea", placeholder: "依赖｜负责人｜状态｜备选方案" })}
-      ${field("rollout", "发布与验证", { type: "textarea", placeholder: "阶段、资格、监控、回滚与退出标准" })}
-    </div>
-  `,
-  () => {
-    const validation = validateState();
-    return `
-      ${intro("质量检查", "先查看结构校验，再逐项进行判断式评审。保留的问题应有严重级别、负责人和下一步。")}
-      <div class="validation-results">
-        <div class="validation-stat good"><strong>${validation.passed}</strong><span>已通过</span></div>
-        <div class="validation-stat warn"><strong>${validation.warnings.length}</strong><span>待补充</span></div>
-        <div class="validation-stat neutral"><strong>${state.checks.filter(Boolean).length}/${checklistItems.length}</strong><span>人工检查</span></div>
-      </div>
-      ${
-        validation.warnings.length
-          ? `<div class="callout"><strong>结构提示</strong><span>${validation.warnings.map(escapeHtml).join("；")}</span></div>`
-          : '<div class="callout"><strong>结构通过</strong><span>关键结构信号齐全，请继续完成人工判断和独立读者测试。</span></div>'
-      }
-      <div class="checklist">
-        ${checklistItems
-          .map(
-            (item, index) => `
-              <label class="check-item">
-                <input type="checkbox" data-check="${index}" ${state.checks[index] ? "checked" : ""} />
-                <span>${item}</span>
-              </label>
-            `,
-          )
-          .join("")}
-      </div>
-    `;
-  },
-  () => `
-    ${intro("交付决策文档", "执行摘要应在正文完成后撰写，并能独立说明问题、方向、用户、范围、成功标准和待决事项。")}
-    <div class="form-grid">
-      ${field("executiveSummary", "执行摘要", { type: "textarea", placeholder: "用不超过 150 字总结问题、方向、范围边界、核心成功指标和未决事项。", required: true, span: true })}
-      ${field("openDecisions", "开放决策", { type: "textarea", placeholder: "决策｜选项与权衡｜建议人｜审批人｜期限" })}
-      ${field("nextAction", "建议下一步", { type: "textarea", placeholder: "明确负责人和具体动作", required: true })}
-    </div>
-    <div class="callout" style="margin-top: 24px"><strong>交付提醒</strong><span>请让负责人核验事实、链接、目标值、法律与合规声明，并取得相关利益方批准。</span></div>
+function renderDeliveryActions() {
+  return `
+    <div class="callout"><strong>交付提醒</strong><span>请核验事实、链接、目标值、法律与合规声明，并取得相关利益方批准。</span></div>
     <div class="form-actions">
       <button class="button button-ghost" data-action="preview" type="button">预览完整文档</button>
       <button class="button button-primary" data-action="export" type="button">导出 Markdown</button>
     </div>
-  `,
-];
+  `;
+}
+
+function questionIsComplete(question) {
+  if (question.kind === "field") return hasText(state[question.key]);
+  if (question.kind === "collection") {
+    return (
+      state[question.collection].length > 0 &&
+      state[question.collection].some((item) => Object.values(item).some(hasText))
+    );
+  }
+  if (question.kind === "quality") {
+    return (
+      checklistItems.filter((item) => state.checks[item.id]).length >=
+      workflow.checklist.minCheckedForCompletion
+    );
+  }
+  return true;
+}
 
 function renderEvidenceRow(item, index) {
   return `
     <div class="collection-row">
       <select data-array="evidence" data-index="${index}" data-field="type" aria-label="证据类型">
-        ${["Fact", "Decision", "Assumption", "TBD"]
+        ${workflow.enums.evidenceTypes
           .map((type) => `<option ${item.type === type ? "selected" : ""}>${type}</option>`)
           .join("")}
       </select>
@@ -556,7 +350,7 @@ function renderRequirementRow(item, index) {
     <div class="collection-row requirement-row">
       <input data-array="requirements" data-index="${index}" data-field="id" value="${escapeHtml(item.id)}" placeholder="FR-001" aria-label="需求 ID" />
       <select data-array="requirements" data-index="${index}" data-field="priority" aria-label="优先级">
-        ${["Must", "Should", "Could"].map((value) => `<option ${item.priority === value ? "selected" : ""}>${value}</option>`).join("")}
+        ${workflow.enums.priorities.map((value) => `<option ${item.priority === value ? "selected" : ""}>${value}</option>`).join("")}
       </select>
       <div>
         <textarea data-array="requirements" data-index="${index}" data-field="requirement" placeholder="系统应当……">${escapeHtml(item.requirement)}</textarea>
@@ -624,7 +418,7 @@ function bindStepEvents() {
 
   elements.stepContent.querySelectorAll("[data-check]").forEach((control) => {
     control.addEventListener("change", () => {
-      state.checks[Number(control.dataset.check)] = control.checked;
+      state.checks[control.dataset.check] = control.checked;
       saveState();
       updateDashboard();
     });
@@ -649,10 +443,14 @@ function bindStepEvents() {
 
 function addItem(collection) {
   const factories = {
-    evidence: () => ({ type: "Fact", claim: "", source: "" }),
+    evidence: () => ({
+      type: workflow.enums.evidenceTypes[0],
+      claim: "",
+      source: "",
+    }),
     requirements: () => ({
       id: `FR-${String(state.requirements.length + 1).padStart(3, "0")}`,
-      priority: "Must",
+      priority: workflow.enums.priorities[0],
       requirement: "",
       acceptance: "",
     }),
@@ -687,18 +485,14 @@ function hasText(value) {
 }
 
 function completionForStep(index) {
-  const fieldGroups = [
-    ["productName", "owner", "problem", "audience", "targetUsers", "desiredOutcome"],
-    ["evidence"],
-    ["whyNow", "decisionNeeded", "goals", "nonGoals", "inScope", "outOfScope"],
-    ["requirements"],
-    ["metrics", "risks", "rollout"],
-    ["checks"],
-    ["executiveSummary", "nextAction"],
-  ];
-  const fields = fieldGroups[index];
+  const fields = steps[index].completionFields;
   const completed = fields.filter((key) => {
-    if (key === "checks") return state.checks.filter(Boolean).length >= 7;
+    if (key === "checks") {
+      return (
+        checklistItems.filter((item) => state.checks[item.id]).length >=
+        workflow.checklist.minCheckedForCompletion
+      );
+    }
     if (Array.isArray(state[key])) {
       return state[key].length > 0 && state[key].some((item) => Object.values(item).some(hasText));
     }
@@ -717,23 +511,18 @@ function updateDashboard() {
   elements.readinessBar.style.width = `${score}%`;
   elements.readinessBar.parentElement.setAttribute("aria-valuenow", score);
   elements.readinessHint.textContent =
-    score >= 85
-      ? "文档接近可交付，请完成独立读者测试。"
-      : score >= 50
-        ? "框架已形成，继续补全可测试需求与指标。"
-        : "完成关键字段后即可进入下一阶段。";
+    workflow.readiness.hints.find((hint) => score >= hint.minScore)?.text || "";
 
-  const questWins = Object.values(state.questWins || {}).filter(Boolean).length;
-  const explorationValue = score + questWins * 10;
+  const questionProgress =
+    (currentQuestionIndex() + 1) / steps[state.currentStep].questions.length;
   const journeyProgress = Math.min(
     100,
-    ((state.currentStep + completionForStep(state.currentStep)) / steps.length) * 100,
+    ((state.currentStep + questionProgress) / steps.length) * 100,
   );
-  const journeyCharacters = ["🧭", "🔎", "🗺️", "🧩", "🎯", "🛡️", "🚀"];
-  elements.journeyXp.textContent = `${explorationValue} 探索值`;
+  elements.journeyProgressLabel.textContent =
+    `阶段 ${state.currentStep + 1} · 问题 ${currentQuestionIndex() + 1}/${steps[state.currentStep].questions.length}`;
   elements.journeyFill.style.width = `${journeyProgress}%`;
   elements.journeyCharacter.style.left = `${Math.max(2, journeyProgress)}%`;
-  elements.journeyCharacter.textContent = journeyCharacters[state.currentStep];
 
   const counts = { Fact: 0, Decision: 0, Assumption: 0, TBD: 0 };
   state.evidence.forEach((item) => {
@@ -748,29 +537,28 @@ function updateDashboard() {
 }
 
 function validateState() {
-  const rules = [
-    [hasText(state.problem), "缺少明确的问题陈述"],
-    [hasText(state.targetUsers), "缺少目标用户"],
-    [hasText(state.goals), "缺少结果导向目标"],
-    [hasText(state.inScope) && hasText(state.outOfScope), "范围边界不完整"],
-    [
-      state.requirements.some(
-        (item) => /^FR-\d{3}$/.test(item.id) && hasText(item.requirement),
-      ),
-      "缺少 FR-001 格式的功能需求",
-    ],
-    [
-      state.requirements.some((item) => hasText(item.acceptance)),
-      "缺少可观察的验收标准",
-    ],
-    [state.metrics.some((item) => hasText(item.name)), "缺少成功指标"],
-    [state.risks.some((item) => hasText(item.risk)), "缺少风险记录"],
-    [hasText(state.openDecisions) || hasText(state.nextAction), "待决事项缺少负责人或下一步"],
-  ];
+  const rules = workflow.validation.rules.map((rule) => [
+    evaluateValidationRule(rule),
+    rule.message,
+  ]);
   return {
     passed: rules.filter(([passed]) => passed).length,
     warnings: rules.filter(([passed]) => !passed).map(([, message]) => message),
   };
+}
+
+function evaluateValidationRule(rule) {
+  if (rule.kind === "nonEmpty") return hasText(state[rule.field]);
+  if (rule.kind === "allNonEmpty") {
+    return rule.fields.every((fieldKey) => hasText(state[fieldKey]));
+  }
+  if (rule.kind === "anyNonEmpty") {
+    return rule.fields.some((fieldKey) => hasText(state[fieldKey]));
+  }
+  if (rule.kind === "arrayNonEmpty") {
+    return state[rule.field].some((item) => hasText(item[rule.itemField]));
+  }
+  return false;
 }
 
 function bullets(value, empty = "- TBD") {
@@ -1042,13 +830,30 @@ function hasLegacyDraft() {
 function normalizePrd(prd) {
   const cleanPrd =
     prd && typeof prd === "object"
-      ? Object.fromEntries(Object.entries(prd).filter(([key]) => key !== "mode"))
+      ? Object.fromEntries(
+          Object.entries(prd).filter(([key]) =>
+            Object.prototype.hasOwnProperty.call(defaults, key),
+          ),
+        )
       : {};
   return {
     ...structuredClone(defaults),
     ...cleanPrd,
-    checks: checklistItems.map((_, index) => Boolean(prd?.checks?.[index])),
+    stagePositions:
+      cleanPrd.stagePositions && typeof cleanPrd.stagePositions === "object"
+        ? cleanPrd.stagePositions
+        : {},
+    checks: normalizeChecks(prd?.checks),
   };
+}
+
+function normalizeChecks(value) {
+  return Object.fromEntries(
+    checklistItems.map((item, index) => [
+      item.id,
+      Boolean(Array.isArray(value) ? value[index] : value?.[item.id]),
+    ]),
+  );
 }
 
 function updateTaskUi() {
@@ -1451,25 +1256,12 @@ function buildAiContext() {
         }
       : null,
     phase: steps[state.currentStep].short,
-    productName: state.productName,
-    problem: state.problem,
-    audience: state.audience,
-    targetUsers: state.targetUsers,
-    currentWorkaround: state.currentWorkaround,
-    desiredOutcome: state.desiredOutcome,
-    constraints: state.constraints,
-    whyNow: state.whyNow,
-    decisionNeeded: state.decisionNeeded,
-    goals: state.goals,
-    nonGoals: state.nonGoals,
-    inScope: state.inScope,
-    outOfScope: state.outOfScope,
-    evidence: state.evidence,
-    requirements: state.requirements,
-    metrics: state.metrics,
-    risks: state.risks,
+    question: steps[state.currentStep].questions[currentQuestionIndex()].id,
+    ...Object.fromEntries(
+      workflow.ai.contextFields.map((fieldKey) => [fieldKey, state[fieldKey]]),
+    ),
   };
-  return JSON.stringify(context).slice(0, 24000);
+  return JSON.stringify(context).slice(0, workflow.ai.contextMaxChars);
 }
 
 async function runAiAssistant() {
@@ -1527,17 +1319,40 @@ function applyAiResult(operation) {
   showToast(operation === "append" ? "AI 建议已追加" : "字段内容已替换");
 }
 
-function goToStep(index) {
-  state.currentStep = Math.max(0, Math.min(steps.length - 1, index));
+function moveLinear(direction) {
+  const stage = steps[state.currentStep];
+  const questionIndex = currentQuestionIndex();
+  if (direction > 0) {
+    if (questionIndex < stage.questions.length - 1) {
+      setCurrentQuestionIndex(questionIndex + 1);
+    } else if (state.currentStep < steps.length - 1) {
+      state.currentStep += 1;
+      setCurrentQuestionIndex(currentQuestionIndex(state.currentStep));
+    } else {
+      exportMarkdown();
+      return;
+    }
+  } else if (questionIndex > 0) {
+    setCurrentQuestionIndex(questionIndex - 1);
+  } else if (state.currentStep > 0) {
+    state.currentStep -= 1;
+    setCurrentQuestionIndex(steps[state.currentStep].questions.length - 1);
+  } else {
+    return;
+  }
   saveState();
   renderStep();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-elements.previousButton.addEventListener("click", () => goToStep(state.currentStep - 1));
-elements.nextButton.addEventListener("click", () => {
-  if (state.currentStep === steps.length - 1) exportMarkdown();
-  else goToStep(state.currentStep + 1);
+elements.previousButton.addEventListener("click", () => moveLinear(-1));
+elements.nextButton.addEventListener("click", () => moveLinear(1));
+elements.markTbdButton.addEventListener("click", () => {
+  const question = steps[state.currentStep].questions[currentQuestionIndex()];
+  if (question.kind !== "field") return;
+  if (!hasText(state[question.key])) state[question.key] = "TBD";
+  saveState();
+  moveLinear(1);
 });
 
 document.querySelector("#previewButton").addEventListener("click", openPreview);
@@ -1743,10 +1558,16 @@ document.addEventListener("keydown", (event) => {
   }
   if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
     event.preventDefault();
-    if (state.currentStep < steps.length - 1) goToStep(state.currentStep + 1);
+    moveLinear(1);
   }
 });
 
+elements.aiAction.innerHTML = workflow.ai.actions
+  .map(
+    (action) =>
+      `<option value="${action.id}">${escapeHtml(action.label)}</option>`,
+  )
+  .join("");
 updateAiStatus();
 renderStep();
 bootstrapTasks();

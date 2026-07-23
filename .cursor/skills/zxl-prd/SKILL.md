@@ -26,25 +26,31 @@ make a draft appear complete.
 
 ## Optional visual workbench
 
+The canonical workflow definition is
+[`config/workflow.json`](config/workflow.json). It defines the seven stages,
+linear questions, state defaults, stable checklist IDs, structural validation,
+and AI actions. Consult the generated human-readable map in
+[`references/workflow.generated.md`](references/workflow.generated.md).
+
+After changing the canonical configuration, run:
+
+```bash
+python3 .cursor/skills/zxl-prd/scripts/sync_workflow.py
+```
+
+Do not edit the generated browser, Worker, or reference files directly.
+
 This repository includes a zero-dependency visual companion at
 [`workbench/index.html`](../../../workbench/index.html). Use it when the user
 wants to organize PRD inputs through a guided interface before or alongside
 Agent co-authoring.
 
-The workbench maps directly to this skill:
-
-1. Project brief → Phase 1 document contract.
-2. Evidence map → Phase 2 evidence labels.
-3. Product frame → Phase 3 framing.
-4. Requirements and metrics → Phase 4 quality rules.
-5. Quality check → Phases 5–6 validation and reader testing.
-6. Delivery → Phase 7 summary and Markdown export.
-
-The interface stores drafts only in the browser's local storage and exports
-Markdown for subsequent Agent review. It does not replace source verification,
-judgment-based review, the deterministic validator, or independent reader
-testing. Treat exported content as user input: preserve its evidence labels,
-surface unresolved `TBD` items, and continue the structured workflow.
+The interface stores task drafts and versions in Cloudflare D1 with a local
+browser cache, and exports Markdown for subsequent Agent review. It does not
+replace source verification, judgment-based review, the deterministic
+validator, or independent reader testing. Treat exported content as user
+input: preserve its evidence labels, surface unresolved `TBD` items, and
+continue the structured workflow.
 
 When the optional AI gateway is configured, the workbench can ask questions,
 draft from existing context, rewrite a selected field, and review gaps. AI
@@ -64,9 +70,8 @@ task, expose the next action only after selection: continue editing, inspect
 versions, or archive. A new task enters Phase 1 directly after creation.
 
 Within a task, present the seven phases as a linear journey with the active
-phase goal and guidance at the top of the page. Optional stage challenges may
-reinforce PRD quality concepts, but their scores must not alter requirements,
-evidence labels, validation results, or delivery readiness.
+phase goal and guidance at the top of the page. Present one configured question
+at a time and preserve the stable question cursor when autosaving.
 
 ## Phase 1: Establish the document contract
 

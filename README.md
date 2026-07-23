@@ -37,13 +37,14 @@ Then visit `http://localhost:8000/workbench/`.
 The workbench turns the ZXL PRD phases into a seven-step interface. It supports
 evidence labeling, requirement and metric editing, readiness tracking, local
 autosave, structural checks, live Markdown preview, and Markdown export. Drafts
-remain in the browser's local storage; no content is sent to a server.
+are cached locally and, after gateway configuration, synchronized to the
+task-scoped D1 store.
 
 The editor uses a linear top-of-page journey: stage context and progress remain
-visible above the focused form, while previous/next controls move through the
-seven stages. Each stage includes an optional product-quality mini challenge.
-Correct answers earn task-scoped exploration points and celebration feedback;
-they never change PRD content or block delivery.
+visible above the focused form, while previous/next controls move one configured
+question at a time. The canonical question order, validation rules, checklist,
+and AI behavior live in
+`.cursor/skills/zxl-prd/config/workflow.json`.
 
 ### Task-based workflow and history
 

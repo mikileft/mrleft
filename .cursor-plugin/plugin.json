@@ -1,8 +1,8 @@
 {
   "name": "zxl-prd",
   "displayName": "ZXL PRD",
-  "description": "Manage task-scoped, versioned product requirements with secure AI co-authoring, a guided visual workbench, measurable requirements, and validation.",
-  "version": "1.6.1",
+  "description": "Manage task-scoped, versioned product requirements with a configuration-driven Skill workflow, secure AI co-authoring, and validation.",
+  "version": "2.0.0",
   "author": {
     "name": "mikileft"
   },

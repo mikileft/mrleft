@@ -71,22 +71,27 @@
           </div>
           <div class="journey-shell">
             <div class="journey-meta">
-              <span>PRD 探索旅程</span>
-              <strong id="journeyXp">0 探索值</strong>
+              <span>PRD 编写进度</span>
+              <strong id="journeyProgressLabel">阶段 1 · 问题 1</strong>
             </div>
             <nav id="stepNav" class="step-nav" aria-label="PRD 创建步骤"></nav>
             <div class="journey-track" aria-hidden="true">
               <div class="journey-fill" id="journeyFill"></div>
-              <span class="journey-character" id="journeyCharacter">🚀</span>
+              <span class="journey-character" id="journeyCharacter"></span>
             </div>
             <div class="journey-controls">
               <button class="button button-ghost" id="previousButton" type="button">
                 ← 上一步
               </button>
               <span id="stepCounter">步骤 1 / 7</span>
-              <button class="button button-primary" id="nextButton" type="button">
-                下一步 →
-              </button>
+              <div class="journey-control-actions">
+                <button class="button button-ghost" id="markTbdButton" type="button">
+                  暂存为 TBD
+                </button>
+                <button class="button button-primary" id="nextButton" type="button">
+                  下一题 →
+                </button>
+              </div>
             </div>
           </div>
         </header>
@@ -111,10 +116,6 @@
                 <div id="readinessBar" class="progress-bar"></div>
               </div>
               <p id="readinessHint">完成关键字段后即可进入下一阶段。</p>
-            </section>
-
-            <section class="quest-card" id="stageQuest">
-              <div class="quest-loading">正在准备本阶段挑战…</div>
             </section>
 
             <section class="insight-card">
@@ -290,12 +291,7 @@
         </div>
         <div class="field">
           <label for="aiAction"><span>希望 AI 做什么？</span></label>
-          <select id="aiAction">
-            <option value="questions">发现缺口并提出追问</option>
-            <option value="draft">基于现有事实生成草案</option>
-            <option value="rewrite">优化表达与可测试性</option>
-            <option value="review">检查矛盾、假设与风险</option>
-          </select>
+          <select id="aiAction"></select>
         </div>
         <div class="ai-privacy-note">
           发送内容包括当前字段及相关 PRD 上下文。请勿提交密钥、个人敏感信息或未授权数据。
@@ -348,7 +344,7 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <div id="celebrationLayer" class="celebration-layer" aria-hidden="true"></div>
+    <script src="./skill-config.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

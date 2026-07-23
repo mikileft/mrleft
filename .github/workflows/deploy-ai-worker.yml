@@ -25,6 +25,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Verify synchronized Skill workflow
+        run: python3 .cursor/skills/zxl-prd/scripts/sync_workflow.py --check
+
       - name: Prepare D1 task database
         run: node worker/scripts/prepare-d1.mjs
         env:
