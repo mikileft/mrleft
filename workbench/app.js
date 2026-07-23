@@ -1207,6 +1207,14 @@ function openAiSettings() {
 
 function buildAiContext() {
   const context = {
+    task: activeTask
+      ? {
+          id: activeTask.id,
+          title: activeTask.title,
+          status: activeTask.status,
+          revision: activeTask.current_revision,
+        }
+      : null,
     mode: state.mode,
     phase: steps[state.currentStep].short,
     productName: state.productName,
